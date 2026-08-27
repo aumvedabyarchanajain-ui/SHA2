@@ -33,6 +33,18 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Python (apps/ahi)
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 # IDE
 .vscode/*
 !.vscode/extensions.json
