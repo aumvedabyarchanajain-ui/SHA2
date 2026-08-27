@@ -4,40 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@aumveda/db'
 import { z } from 'zod'
 
+import { calculateUserProgressScore } from '@/lib/scoring/progressEngine'
+
 async function recalculateProgress(userId: string) {
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-  const journalCount = await prisma.journal.count({
-    where: { userId, isDeleted: false, createdAt: { gte: sevenDaysAgo } },
-  })
-  const J_t = (Math.min(journalCount, 7) / 7) * 100
-
-  const journals = await prisma.journal.findMany({
-    where: { userId, isDeleted: false, mood: { not: null } },
-    orderBy: { createdAt: 'desc' },
-    take: 7,
-    select: { mood: true },
-  })
-  const avgMood = journals.length
-    ? journals.reduce((s, j) => s + (j.mood ?? 3), 0) / journals.length
-    : 3
-  const W_t = avgMood * 20
-
-  const S_t = 50
-  const A_t = 0
-  const P_t = 0.35 * S_t + 0.30 * A_t + 0.25 * J_t + 0.10 * W_t
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  await prisma.progressSnapshot.upsert({
-    where: { userId_date: { userId, date: today } },
-    create: { userId, date: today, score: P_t, sleepScore: S_t, activityScore: A_t, journalScore: J_t, wellbeingScore: W_t },
-    update: { score: P_t, journalScore: J_t, wellbeingScore: W_t },
-  })
-
-  await prisma.profile.update({ where: { userId }, data: { progress: P_t } })
+  try {
+    await calculateUserProgressScore(userId)
+  } catch (err) {
+    console.warn('[journals] Progress recalculation warning:', err)
+  }
 }
 
 const createSchema = z.object({

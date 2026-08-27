@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ShoppingBag } from "lucide-react";
 import { useScrollProgress } from "./useScrollProgress";
+import { useCart } from "@/lib/cart";
+import { useCartDrawer } from "@/components/cart/CartDrawer";
 
 const SECTIONS = [
   { id: "top", label: "01 Hero" },
@@ -21,6 +24,8 @@ const SECTIONS = [
 export function FloatingNav() {
   const [scrolled, setScrolled] = useState(false);
   const progress = useScrollProgress((s) => s.progress);
+  const { totalItems } = useCart();
+  const { openCart } = useCartDrawer();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,6 +95,21 @@ export function FloatingNav() {
 
         {/* Action CTAs */}
         <div className="flex items-center gap-4 md:gap-6">
+          {/* Cart Trigger */}
+          <button
+            type="button"
+            onClick={openCart}
+            aria-label={`Open Sacred Cart, ${totalItems} items`}
+            className="relative p-2 rounded-full text-[hsl(var(--av-parchment))] hover:text-[hsl(var(--av-gold-soft))] hover:bg-white/10 transition-all duration-200 cursor-pointer flex items-center justify-center"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            {totalItems > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] text-[10px] font-mono font-bold flex items-center justify-center shadow-xs animate-in zoom-in-50">
+                {totalItems}
+              </span>
+            )}
+          </button>
+
           <Link
             href="/auth/login?portal=client"
             className="text-[11px] uppercase tracking-[0.22em] text-[hsl(var(--av-parchment)/0.6)] transition-colors hover:text-[hsl(var(--av-parchment))]"

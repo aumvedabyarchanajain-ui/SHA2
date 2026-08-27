@@ -2,11 +2,13 @@ import { requireSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@aumveda/db'
 import Link from 'next/link'
+import { Calendar, Video, BookOpen, Sparkles } from 'lucide-react'
 import Topbar from '../_components/Topbar'
 import TodayDoseCard from './_components/TodayDoseCard'
 import CosmicNoteCard, { QuietGrounding } from './_components/CosmicNoteCard'
 import ProgressRing from './_components/ProgressRing'
 import CrystalWidget from './_components/CrystalWidget'
+import DailyRitualTracker from './_components/DailyRitualTracker'
 import { getActiveProductsByChakra, DEMO_PRODUCTS } from '@/lib/product-service'
 import type { ProductView } from '@/lib/product-service'
 import PackageStatusCard from './_components/PackageStatusCard'
@@ -226,6 +228,15 @@ export default async function DashboardPage() {
           {/* Cosmic Weather — emotional anchor */}
           <CosmicNoteCard note={cosmicNote} />
 
+          {/* Daily 3-Step Integration Flow */}
+          <DailyRitualTracker
+            checkInDone={!!todayCheckIn?.completedAt}
+            journalDone={recentJournals.some(
+              (j) => new Date(j.createdAt).toDateString() === today.toDateString()
+            )}
+            doseMins={todayDose ? Math.max(1, Math.round(todayDose.durationSec / 60)) : 10}
+          />
+
           {/* Grounding */}
           <QuietGrounding checkInDone={!!todayCheckIn?.completedAt} />
 
@@ -257,12 +268,17 @@ export default async function DashboardPage() {
           <section className="space-y-0 divide-y divide-[hsl(var(--av-stone))] border-t border-[hsl(var(--av-stone))]">
             <div className="py-6 space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-body text-sm text-[hsl(var(--av-mute))]">Reflection</p>
+                <div>
+                  <p className="font-body text-sm text-[hsl(var(--av-mute))]">Living Reflection</p>
+                  <p className="font-serif text-xl text-[hsl(var(--av-night))] mt-0.5">
+                    {recentJournals.length ? 'Recent Insights' : 'How does your nervous system feel?'}
+                  </p>
+                </div>
                 <Link
                   href={recentJournals.length ? '/dashboard/journal' : '/dashboard/journal/new'}
                   className="font-body text-sm text-[hsl(var(--av-night))] underline underline-offset-4 decoration-[hsl(var(--av-stone))] hover:decoration-[hsl(var(--av-gold))]"
                 >
-                  {recentJournals.length ? 'View all' : 'Write'}
+                  {recentJournals.length ? 'View all' : 'Write entry'}
                 </Link>
               </div>
               {recentJournals.length ? (
@@ -271,9 +287,9 @@ export default async function DashboardPage() {
                     <li key={j.id}>
                       <Link
                         href={`/dashboard/journal/${j.id}`}
-                        className="flex items-baseline justify-between gap-4 group"
+                        className="flex items-baseline justify-between gap-4 group p-2.5 -mx-2.5 rounded-xl hover:bg-white/40 transition-colors"
                       >
-                        <span className="font-serif text-xl text-[hsl(var(--av-night))] group-hover:text-[hsl(var(--av-ink))] truncate">
+                        <span className="font-serif text-lg text-[hsl(var(--av-night))] group-hover:text-[hsl(var(--av-gold))] truncate">
                           {j.title || 'Untitled entry'}
                         </span>
                         <span className="font-body text-xs text-[hsl(var(--av-mute))] flex-shrink-0">
@@ -288,15 +304,22 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="font-serif text-xl text-[hsl(var(--av-night))]">How do you feel?</p>
+                <p className="font-body text-sm text-[hsl(var(--av-mute))]">
+                  Capture thoughts, emotional shifts, and dream recalls in your private journal.
+                </p>
               )}
             </div>
 
             {nextAppointment ? (
-              <div className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="font-body text-sm text-[hsl(var(--av-mute))]">Next session</p>
-                  <p className="font-serif text-xl text-[hsl(var(--av-night))] mt-0.5">
+              <div className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[hsl(var(--av-gold)/0.06)] -mx-6 px-6 sm:rounded-2xl border-y sm:border border-[hsl(var(--av-gold)/0.3)]">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-[hsl(var(--av-gold))] animate-pulse" />
+                    <p className="font-body text-xs font-semibold uppercase tracking-[0.16em] text-[hsl(var(--av-night))]">
+                      Upcoming 1:1 Sanctuary Session
+                    </p>
+                  </div>
+                  <p className="font-serif text-xl text-[hsl(var(--av-night))]">
                     {new Date(nextAppointment.bookingDatetime).toLocaleDateString('en-IN', {
                       weekday: 'short',
                       day: 'numeric',
@@ -306,33 +329,35 @@ export default async function DashboardPage() {
                     })}
                   </p>
                   {nextAppointment.practitioner ? (
-                    <p className="font-body text-sm text-[hsl(var(--av-mute))] capitalize mt-0.5">
-                      with {nextAppointment.practitioner}
+                    <p className="font-body text-sm text-[hsl(var(--av-mute))] capitalize">
+                      Held with {nextAppointment.practitioner}
                     </p>
                   ) : null}
                 </div>
-                {nextAppointment.zoomLink ? (
-                  <a
-                    href={nextAppointment.zoomLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-10 items-center px-5 rounded-full border border-[hsl(var(--av-night))] text-[hsl(var(--av-night))] font-body text-sm"
-                  >
-                    Join
-                  </a>
-                ) : (
-                  <Link
-                    href="/dashboard/appointments"
-                    className="font-body text-sm text-[hsl(var(--av-night))] underline underline-offset-4"
-                  >
-                    View sessions
-                  </Link>
-                )}
+                <div className="flex items-center gap-3">
+                  {nextAppointment.zoomLink ? (
+                    <a
+                      href={nextAppointment.zoomLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-11 items-center px-6 rounded-full bg-[hsl(var(--av-night))] text-[hsl(var(--av-gold-soft))] font-body text-sm font-medium hover:bg-[hsl(var(--av-ink))] shadow-sm transition-all"
+                    >
+                      Join Zoom Sanctuary
+                    </a>
+                  ) : (
+                    <Link
+                      href="/dashboard/appointments"
+                      className="inline-flex h-10 items-center px-5 rounded-full border border-[hsl(var(--av-night))] text-[hsl(var(--av-night))] font-body text-sm font-medium hover:bg-[hsl(var(--av-stone)/0.5)] transition-colors"
+                    >
+                      View Sessions
+                    </Link>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <p className="font-body text-sm text-[hsl(var(--av-mute))]">Sessions</p>
+                  <p className="font-body text-sm text-[hsl(var(--av-mute))]">1:1 Clinical Sessions</p>
                   <p className="font-serif text-xl text-[hsl(var(--av-night))] mt-0.5">
                     Held when you are ready
                   </p>
@@ -341,14 +366,14 @@ export default async function DashboardPage() {
                   href="/dashboard/appointments"
                   className="font-body text-sm text-[hsl(var(--av-night))] underline underline-offset-4"
                 >
-                  Open
+                  Book or View
                 </Link>
               </div>
             )}
 
             <div className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="font-body text-sm text-[hsl(var(--av-mute))]">Practice</p>
+                <p className="font-body text-sm text-[hsl(var(--av-mute))]">Practice & Homework</p>
                 <p className="font-serif text-xl text-[hsl(var(--av-night))] mt-0.5">
                   Guidance between sessions
                 </p>
@@ -357,22 +382,22 @@ export default async function DashboardPage() {
                 href="/dashboard/homework"
                 className="font-body text-sm text-[hsl(var(--av-night))] underline underline-offset-4 decoration-[hsl(var(--av-stone))] hover:decoration-[hsl(var(--av-gold))]"
               >
-                Open
+                Open Practice
               </Link>
             </div>
 
             <div className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="font-body text-sm text-[hsl(var(--av-mute))]">Journey</p>
+                <p className="font-body text-sm text-[hsl(var(--av-mute))]">Healing Journey</p>
                 <p className="font-serif text-xl text-[hsl(var(--av-night))] mt-0.5">
-                  Your living story
+                  Your living milestones & nervous system map
                 </p>
               </div>
               <Link
                 href="/dashboard/journey"
                 className="font-body text-sm text-[hsl(var(--av-night))] underline underline-offset-4 decoration-[hsl(var(--av-stone))] hover:decoration-[hsl(var(--av-gold))]"
               >
-                Open
+                View Timeline
               </Link>
             </div>
           </section>

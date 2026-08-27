@@ -1,0 +1,42 @@
+{
+  "name": "Make.com Scenario: LMS Course Re-engagement (Device Push + Email Nudge)",
+  "flow": [
+    {
+      "id": 1,
+      "module": "cron:Schedule",
+      "version": 1,
+      "parameters": {
+        "pattern": "0 10 * * *",
+        "description": "Daily at 10:00 AM IST"
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionMakeRequest",
+      "version": 1,
+      "parameters": {
+        "url": "{{AUMVEDA_APP_URL}}/api/cron/course-reengagement?days=4",
+        "method": "GET",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "Bearer {{CRON_SECRET}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "json:ParseJSON",
+      "version": 1,
+      "parameters": {
+        "json": "{{2.data}}"
+      }
+    }
+  ],
+  "metadata": {
+    "platform": "make.com",
+    "version": "v2",
+    "description": "Monitors inactive students (>4 days) and triggers push notifications and Sejal voice note emails"
+  }
+}

@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Forward to GTM Server Container & Meta CAPI / GA4
+    const { dispatchServerEvent } = await import('@/lib/tracking/gtm-server')
+    dispatchServerEvent({
+      eventName,
+      eventId: event.eventId,
+      user: {
+        userId: session.user.id,
+        email: session.user.email,
+        clientIp: req.headers.get('x-forwarded-for')?.split(',')[0].trim() || null,
+        userAgent: req.headers.get('user-agent') || null,
+      },
+      customData: payload || {},
+    }).catch(() => {})
+
     return NextResponse.json({ ok: true, eventId: event.eventId })
   } catch (error: any) {
     console.error('ANALYTICS TRACK API ERROR:', error)

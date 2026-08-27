@@ -1,0 +1,153 @@
+{
+  "name": "WF-4: Crystal Order Fulfillment & Activation Guide Dispatch",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aumveda-crystal-order-paid",
+        "options": {}
+      },
+      "id": "node-order-paid-webhook",
+      "name": "Webhook: Order Paid (Crystals)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "aumveda-crystal-order-paid"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-crystals",
+              "leftValue": "={{ $json.body.hasPhysicalCrystals }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-filter-crystal-items",
+      "name": "Check Has Crystal Items",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SHIPROCKET_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"order_id\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.orderId }}\",\n  \"order_date\": \"{{ $now.toFormat('yyyy-MM-dd HH:mm') }}\",\n  \"pickup_location\": \"Aumveda_Warehouse_Primary\",\n  \"billing_customer_name\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.customer.name }}\",\n  \"billing_address\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.shippingAddress.line1 }}\",\n  \"billing_city\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.shippingAddress.city }}\",\n  \"billing_pincode\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.shippingAddress.pincode }}\",\n  \"billing_state\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.shippingAddress.state }}\",\n  \"billing_country\": \"India\",\n  \"billing_email\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.customer.email }}\",\n  \"billing_phone\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.customer.phone }}\",\n  \"shipping_is_billing\": true,\n  \"order_items\": {{ JSON.stringify($('Webhook: Order Paid (Crystals)').item.json.body.orderItems) }},\n  \"payment_method\": \"Prepaid\",\n  \"sub_total\": {{ $('Webhook: Order Paid (Crystals)').item.json.body.totalAmountINR }}\n}"
+      },
+      "id": "node-shiprocket-dispatch",
+      "name": "Create Shiprocket Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "Aumveda Sanctum <orders@aumveda.com>",
+        "toEmail": "={{ $('Webhook: Order Paid (Crystals)').item.json.body.customer.email }}",
+        "subject": "=Your Consecrated Crystal Activation Ritual • Order #{{ $('Webhook: Order Paid (Crystals)').item.json.body.orderId }}",
+        "html": "=<h2>Namaste {{ $('Webhook: Order Paid (Crystals)').item.json.body.customer.name }},</h2><p>Your sacred crystals have been prepared and dispatched.</p><h3>Your Astro-Somatic Activation Ritual</h3><p>Based on your energetic alignment (<strong>{{ $('Webhook: Order Paid (Crystals)').item.json.body.dominantChakra || 'Heart Chakra' }}</strong>), follow these consecration steps upon unboxing:</p><ol><li><strong>Cleansing:</strong> Smudge with sage or sound bath under morning sunlight.</li><li><strong>Prana Infusion:</strong> Hold the stone at your heart center and chant the <em>Bija Mantra</em> 3 times.</li><li><strong>Intention Seal:</strong> Set your sankalpa for somatic grounding.</li></ol><p>Track your shipment: <a href=\"https://aumveda.com/orders/{{ $('Webhook: Order Paid (Crystals)').item.json.body.orderId }}\">View Order Status</a></p><p>In Light,<br>Archana & Sejal Jain</p>"
+      },
+      "id": "node-send-activation-email",
+      "name": "Send Crystal Activation Ritual Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [920, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUMVEDA_APP_URL || 'https://app.aumveda.com' }}/api/n8n/crystal-fulfillment",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"log_fulfillment\",\n  \"orderId\": \"{{ $('Webhook: Order Paid (Crystals)').item.json.body.orderId }}\",\n  \"shiprocketOrderId\": \"{{ $('Create Shiprocket Order').item.json.order_id }}\",\n  \"status\": \"DISPATCHED_TO_COURIER\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}"
+      },
+      "id": "node-log-fulfillment",
+      "name": "Log Fulfillment in DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1140, 200]
+    }
+  ],
+  "connections": {
+    "Webhook: Order Paid (Crystals)": {
+      "main": [
+        [
+          {
+            "node": "Check Has Crystal Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Has Crystal Items": {
+      "main": [
+        [
+          {
+            "node": "Create Shiprocket Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Shiprocket Order": {
+      "main": [
+        [
+          {
+            "node": "Send Crystal Activation Ritual Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Crystal Activation Ritual Email": {
+      "main": [
+        [
+          {
+            "node": "Log Fulfillment in DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": ["aumveda", "crystals", "fulfillment", "shiprocket"]
+}

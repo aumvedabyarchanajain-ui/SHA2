@@ -19,26 +19,27 @@ export interface OrderView {
   trackingNumber?: string
 }
 
-type OrderItemRow = {
-  id: number
-  title: string
+export type OrderItemRow = {
+  id: number | string
+  title?: string | null
+  name?: string | null
   quantity: number
-  priceCents: number
+  priceCents?: number | null
   product?: {
     images: string[]
     productType: string | null
   } | null
 }
 
-type OrderRow = {
-  id: number
+export type OrderRow = {
+  id: number | string
   createdAt: Date
-  totalCents: number
+  totalCents?: number | null
   status: string
-  paymentStatus?: string
+  paymentStatus?: string | null
   eazebusPaymentId?: string | null
-  shippingAddress: unknown
-  trackingNumber: string | null
+  shippingAddress?: unknown
+  trackingNumber?: string | null
   items?: OrderItemRow[]
 }
 
@@ -49,15 +50,15 @@ export function mapOrderItem(item: OrderItemRow): OrderItemView {
   else if (productType === 'digital') type = 'MICRO_LEARNING'
   return {
     id: String(item.id),
-    name: item.title,
+    name: item.title || item.name || 'Product',
     quantity: item.quantity,
-    price: item.priceCents / 100,
+    price: (item.priceCents ?? 0) / 100,
     image: item.product?.images?.[0] ?? '',
     type,
   }
 }
 
-export function mapOrder(order: OrderRow): OrderView {
+export function mapOrder(order: any): OrderView {
   const shipping =
     order.shippingAddress && typeof order.shippingAddress === 'object'
       ? (order.shippingAddress as { address?: string; fullName?: string }).address ??
@@ -65,13 +66,13 @@ export function mapOrder(order: OrderRow): OrderView {
       : null
   return {
     id: String(order.id),
-    createdAt: order.createdAt.toISOString(),
-    total: order.totalCents / 100,
+    createdAt: order.createdAt instanceof Date ? order.createdAt.toISOString() : new Date(order.createdAt).toISOString(),
+    total: (order.totalCents ?? 0) / 100,
     status: order.status,
     paymentStatus: order.paymentStatus ?? 'PENDING',
     shippingAddress:
       shipping ?? 'Digital content — delivered instantly to your account.',
-    paymentMethod: order.eazebusPaymentId ? 'Online payment' : 'Pending payment',
+    paymentMethod: order.eazebusPaymentId || order.easebuzzPaymentId ? 'Easebuzz Secure' : 'Pending payment',
     trackingNumber: order.trackingNumber ?? undefined,
     items: (order.items ?? []).map(mapOrderItem),
   }

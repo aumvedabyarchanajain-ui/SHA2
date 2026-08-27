@@ -13,6 +13,8 @@ const NAV_ITEMS = [
   { href: '/dashboard/progress', label: 'Progress' },
   { href: '/dashboard/journey', label: 'Journey' },
   { href: '/dashboard/appointments', label: 'Sessions' },
+  { href: '/courses', label: 'Academy' },
+  { href: '/shop', label: 'Sanctuary Shop' },
   { href: '/community', label: 'Community' },
 ]
 

@@ -13,13 +13,15 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const courseId = parseInt(params.courseId, 10)
-  if (isNaN(courseId)) {
+  const courseId = params.courseId
+  if (!courseId) {
     return NextResponse.json({ success: false, error: 'Invalid course id' }, { status: 400 })
   }
 
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
+  const course = await prisma.course.findFirst({
+    where: {
+      OR: [{ id: courseId }, { slug: courseId }],
+    },
     select: { id: true, isPublished: true, isPaid: true, title: true },
   })
   if (!course || !course.isPublished) {
@@ -32,10 +34,10 @@ export async function POST(
     )
   }
 
-  await prisma.enrolment.upsert({
-    where: { userId_courseId: { userId: session.user.id, courseId } },
-    create: { userId: session.user.id, courseId },
-    update: {},
+  await prisma.courseEnrollment.upsert({
+    where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
+    create: { userId: session.user.id, courseId: course.id, status: 'ACTIVE' },
+    update: { status: 'ACTIVE' },
   })
 
   await prisma.event

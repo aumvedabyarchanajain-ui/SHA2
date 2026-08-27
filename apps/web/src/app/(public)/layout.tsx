@@ -39,6 +39,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <Link href="/about" className="hover:text-[hsl(var(--av-gold-soft))]">
                   About
                 </Link>
+                <Link href="/courses" className="hover:text-[hsl(var(--av-gold-soft))]">
+                  Academy
+                </Link>
                 <Link href="/services" className="hover:text-[hsl(var(--av-gold-soft))]">
                   Services
                 </Link>

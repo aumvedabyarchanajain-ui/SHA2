@@ -1,0 +1,72 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: aumveda-n8n
+  labels:
+    cloud.googleapis.com/location: asia-south1
+  annotations:
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/cloudsql-instances: "$PROJECT_ID:asia-south1:aumveda-db"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+        - image: docker.n8n.io/n8nio/n8n:latest
+          ports:
+            - containerPort: 5678
+          resources:
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          env:
+            - name: N8N_PORT
+              value: "5678"
+            - name: N8N_PROTOCOL
+              value: "https"
+            - name: NODE_ENV
+              value: "production"
+            - name: GENERIC_TIMEZONE
+              value: "Asia/Kolkata"
+            - name: DB_TYPE
+              value: "postgresdb"
+            - name: DB_POSTGRESDB_HOST
+              value: "/cloudsql/$PROJECT_ID:asia-south1:aumveda-db"
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: "n8n"
+            - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+              value: "true"
+            - name: N8N_HOST
+              value: "n8n.aumveda.com"
+            - name: WEBHOOK_URL
+              value: "https://n8n.aumveda.com/"
+            - name: AUMVEDA_APP_URL
+              value: "https://app.aumveda.com"
+            - name: DB_POSTGRESDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: N8N_DB_USER
+                  key: latest
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: N8N_DB_PASSWORD
+                  key: latest
+            - name: WHATSAPP_CLOUD_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: WHATSAPP_CLOUD_API_TOKEN
+                  key: latest
+            - name: SHIPROCKET_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: SHIPROCKET_API_TOKEN
+                  key: latest

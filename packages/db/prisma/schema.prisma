@@ -1,5 +1,5 @@
-// Aumveda — canonical Prisma schema
-// DB: PostgreSQL (Neon.tech / Supabase)
+// Aumveda — Canonical Prisma Schema
+// DB: PostgreSQL (Supabase / Neon.tech)
 
 generator client {
   provider        = "prisma-client-js"
@@ -8,12 +8,66 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")       // pooler (port 6543) — used at runtime
-  directUrl = env("DIRECT_URL")         // direct (port 5432)  — used for migrations
+  url       = env("DATABASE_URL") // pooler (port 6543)
+  directUrl = env("DIRECT_URL")   // direct (port 5432)
+}
+
+/// ─────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────
+
+enum CourseLevel {
+  ALL_LEVELS
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentGateway {
+  CASHFREE
+  RAZORPAY
+  EAZEBUS
+  EASEBUZZ
+  EASEBUZZ_PRIMARY
+  EASEBUZZ_SECONDARY
+}
+
+enum ServiceType {
+  ASTROLOGY_ARCHANA
+  SOMATIC_SEJAL
+  DUAL_SYNERGY
+  MENTORSHIP_INTENSIVE
+  VASTU_CONSULTATION
+  DISCOVERY_CALL
+}
+
+enum BookingStatus {
+  SCHEDULED
+  COMPLETED
+  RESCHEDULED
+  CANCELLED
+  NO_SHOW
 }
 
 // ─────────────────────────────────────────────────────────────
-// NextAuth required models
+// AUTH & USER IDENTITY (NextAuth + Supabase Integration)
 // ─────────────────────────────────────────────────────────────
 
 model Account {
@@ -32,6 +86,8 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
 }
 
 model Session {
@@ -43,6 +99,9 @@ model Session {
   ipAddress    String?
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
 }
 
 model VerificationToken {
@@ -51,93 +110,494 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@map("verification_tokens")
 }
-
-// ─────────────────────────────────────────────────────────────
-// Core user models
-// ─────────────────────────────────────────────────────────────
 
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   emailVerified DateTime?
   name          String?
+  phone         String?
   image         String?
   passwordHash  String?   @db.Text
   googleId      String?   @unique
-  role          String    @default("user") // "client" | "practitioner" | "admin" | "super_admin"
-  
-  // Auth Extensions
+  role          String    @default("user") // "user" | "client" | "practitioner" | "admin" | "super_admin"
+
+  // Auth extensions & OTP
   otpCode                  String?
   otpExpires               DateTime?
   resetToken               String?
   resetTokenExpires        DateTime?
   verificationToken        String?
   verificationTokenExpires DateTime?
-  
-  // Birth chart / Astrology data
-  dob           DateTime?
-  birthLat      Float?
-  birthLng      Float?
-  placeOfBirth  String?
-  timeOfBirth   String?
-  risingSign    String?
-  sunSign       String?
-  moonSign      String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Birth chart & Vedic Astrology metadata
+  dob            DateTime?
+  birthLat       Float?
+  birthLng       Float?
+  placeOfBirth   String?
+  timeOfBirth    String?
+  risingSign     String?
+  sunSign        String?
+  moonSign       String?
+  dominantChakra String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // NextAuth relations
-  accounts    Account[]
-  sessions    Session[]
+  accounts Account[]
+  sessions Session[]
 
-  // App relations
-  profile     Profile?
-  journals    Journal[]
-  orders      Order[]
-  achievements Achievement[]
-  consents    Consent[]
-  healthSyncs HealthSync[]
-  healthMetrics HealthMetric[]
+  // Core profile & health
+  profile              Profile?
+  practitionerProfile  PractitionerProfile?
+  journals             Journal[]
+  orders               Order[]
+  achievements         Achievement[]
+  consents             Consent[]
+  healthSyncs          HealthSync[]
+  healthMetrics        HealthMetric[]
   dailyDoseCompletions DailyDoseCompletion[]
-  progressSnapshots ProgressSnapshot[]
-  enrolments  Enrolment[]
-  courseProgress CourseProgress[]
-  events      Event[]
+  progressSnapshots    ProgressSnapshot[]
+  events               Event[]
 
-  // Portal & Programs relations
-  dailyDoseOverrides    DailyDoseOverride[]
-  dailyDoseDeliveries   DailyDoseDelivery[]
-  portalData            UserPortalData?
-  bookings              Booking[]
-  therapySessions       TherapySession[]
-  packages              Package[]
-  communityMember       CommunityMember?
-  subscription          Subscription?
-  liveCircleRSVPs       LiveCircleRSVP[]
+  // LMS Academy relations
+  enrollments       CourseEnrollment[]
+  lessonProgress    LessonProgress[]
+  lessonReflections LessonReflection[]
+  quizSubmissions   QuizSubmission[]
+  certificates      CourseCertificate[]
+  reviews           CourseReview[]
+
+  // Portal & Services
+  dailyDoseOverrides      DailyDoseOverride[]
+  dailyDoseDeliveries     DailyDoseDelivery[]
+  portalData              UserPortalData?
+  bookings                Booking[]
+  therapySessions         TherapySession[]
+  packages                Package[]
+  communityMember         CommunityMember?
+  subscription            Subscription?
+  liveCircleRSVPs         LiveCircleRSVP[]
   challengeParticipations ChallengeParticipation[]
-  contentViews          ContentView[]
-  dailyCheckIns         DailyCheckIn[]
-  clientHomework        ClientHomework[]
+  contentViews            ContentView[]
+  dailyCheckIns           DailyCheckIn[]
+  clientHomework          ClientHomework[]
+  serviceBookings         ServiceBooking[]
+  preSessionBriefs        PreSessionBrief[]
+  circleMemberships       CircleMember[]
+  circlePosts             CirclePost[]
+  circleComments          CircleComment[]
+
+  @@map("users")
 }
 
 model Profile {
-  id              Int      @id @default(autoincrement())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  timezone        String   @default("Asia/Kolkata")
-  avatarUrl       String?
-  bio             String?  @db.Text
-  progress        Float    @default(0)   // latest P_t value 0–100
-  streakDays      Int      @default(0)
-  onboardingDone  Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone       String   @default("Asia/Kolkata")
+  avatarUrl      String?
+  bio            String?  @db.Text
+  progress       Float    @default(0) // latest P_t value 0–100
+  streakDays     Int      @default(0)
+  onboardingDone Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("profiles")
 }
 
 // ─────────────────────────────────────────────────────────────
-// Consent
+// LMS & YOUTUBE ACADEMY ENGINE
+// ─────────────────────────────────────────────────────────────
+
+model Course {
+  id                   String             @id @default(cuid())
+  slug                 String             @unique
+  title                String
+  subtitle             String?
+  description          String             @db.Text
+  thumbnailUrl         String?
+  thumbnailKey         String?            // R2 key fallback
+  trailerYoutubeId     String?
+  instructorName       String             @default("Archana & Sejal Jain")
+  level                CourseLevel        @default(ALL_LEVELS)
+  priceINR             Decimal            @default(0.00) @db.Decimal(10, 2)
+  salePriceINR         Decimal?           @db.Decimal(10, 2)
+  isPaid               Boolean            @default(false)
+  priceCents           Int?               // legacy paise support
+  isPublished          Boolean            @default(false)
+  totalDurationMinutes Int                @default(0)
+  certificateEnabled   Boolean            @default(true)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  modules      CourseModule[]
+  enrollments  CourseEnrollment[]
+  certificates CourseCertificate[]
+  reviews      CourseReview[]
+
+  @@map("courses")
+}
+
+model CourseModule {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?  @db.Text
+  sortOrder   Int      @default(1)
+  orderIndex  Int?     @default(1) // compatibility
+  durationSec Int?
+  isPreview   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons CourseLesson[]
+  quizzes CourseQuiz[]
+
+  @@index([courseId, sortOrder])
+  @@map("course_modules")
+}
+
+model CourseLesson {
+  id               String   @id @default(cuid())
+  moduleId         String
+  title            String
+  description      String?  @db.Text
+  youtubeVideoId   String   // Unlisted YouTube Video ID
+  durationSeconds  Int      @default(0)
+  sortOrder        Int      @default(1)
+  isFreePreview    Boolean  @default(false)
+  workbookPdfUrl   String?
+  audioDownloadUrl String?
+  reflectionPrompt String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  module          CourseModule       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progressRecords LessonProgress[]
+  reflections     LessonReflection[]
+
+  @@index([moduleId, sortOrder])
+  @@map("course_lessons")
+}
+
+model LessonReflection {
+  id             String       @id @default(cuid())
+  userId         String
+  lessonId       String
+  reflectionText String       @db.Text
+  mood           Int?         // 1 to 5
+  isPrivate      Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_reflections")
+}
+
+model LessonProgress {
+  id                    String    @id @default(cuid())
+  userId                String
+  lessonId              String
+  watchTimeSeconds      Int       @default(0)
+  maxWatchTimeSeconds   Int       @default(0)
+  isCompleted           Boolean   @default(false)
+  completedAt           DateTime?
+  lastPlayedPositionSec Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, isCompleted])
+  @@map("lesson_progress")
+}
+
+model CourseEnrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  courseId    String
+  status      EnrollmentStatus @default(ACTIVE)
+  enrolledAt  DateTime         @default(now())
+  completedAt DateTime?
+  orderId     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId, status])
+  @@map("course_enrollments")
+}
+
+model CourseQuiz {
+  id              String   @id @default(cuid())
+  moduleId        String
+  title           String
+  passingScorePct Int      @default(80)
+  questionsJson   Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  module      CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  submissions QuizSubmission[]
+
+  @@index([moduleId])
+  @@map("course_quizzes")
+}
+
+model QuizSubmission {
+  id                   String   @id @default(cuid())
+  userId               String
+  quizId               String
+  scorePct             Int
+  isPassed             Boolean  @default(false)
+  submittedAnswersJson Json
+  submittedAt          DateTime @default(now())
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz CourseQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quizId])
+  @@map("quiz_submissions")
+}
+
+model CourseCertificate {
+  id                String   @id @default(cuid())
+  certificateNumber String   @unique
+  userId            String
+  courseId          String
+  issuedAt          DateTime @default(now())
+  pdfUrl            String
+  verificationHash  String   @unique
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("course_certificates")
+}
+
+model CourseReview {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  rating     Int      // 1 to 5
+  reviewText String?  @db.Text
+  isFeatured Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("course_reviews")
+}
+
+// ─────────────────────────────────────────────────────────────
+// E-COMMERCE & CRYSTAL SANCTUARY
+// ─────────────────────────────────────────────────────────────
+
+model Product {
+  id                   Int      @id @default(autoincrement())
+  sku                  String   @unique
+  slug                 String   @unique
+  title                String
+  name                 String?  // alias for title
+  shortDescription     String?  @db.Text
+  description          String   @db.Text
+  category             String   @default("Crystals")
+  chakraAffinity       String?  // "Root", "Heart", "Third Eye", etc.
+  chakraAssociation    String?  // legacy alias
+  planetaryRuler       String?  // "Saturn", "Venus", "Moon", etc.
+  originCountry        String   @default("India")
+  priceINR             Decimal  @default(0.00) @db.Decimal(10, 2)
+  salePriceINR         Decimal? @db.Decimal(10, 2)
+  priceCents           Int      // stored in paise
+  compareAtPriceCents  Int?     // MRP in paise
+  currency             String   @default("INR")
+  images               String[] // R2 keys or URLs
+  stockQuantity        Int      @default(100)
+  inventoryCount       Int      @default(100)
+  weightGrams          Int?
+  dimensionsCm         String?
+  activationRitualText String?  @db.Text
+  isActive             Boolean  @default(true)
+  isPublished          Boolean  @default(true)
+  productType          String   @default("physical")
+  referenceId          Int?
+  tags                 String[]
+  metadata             Json?
+  healingProperties    Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id                  Int             @id @default(autoincrement())
+  orderNumber         String?         @unique
+  userId              String?
+  status              String          @default("PENDING")
+  paymentStatus       String          @default("PENDING")
+  totalAmountINR      Decimal?        @db.Decimal(10, 2)
+  discountAmountINR   Decimal?        @default(0.00) @db.Decimal(10, 2)
+  shippingAmountINR   Decimal?        @default(0.00) @db.Decimal(10, 2)
+  taxAmountINR        Decimal?        @default(0.00) @db.Decimal(10, 2)
+  gstBreakdown        Json?
+  totalCents          Int             // stored in paise
+  currency            String          @default("INR")
+  paymentGateway      PaymentGateway? @default(EASEBUZZ_PRIMARY)
+  gateway             String?         @default("EASEBUZZ_PRIMARY")
+  gatewayOrderId      String?         @unique
+  gatewayPaymentId    String?
+  easebuzzOrderId     String?         @unique
+  easebuzzPaymentId   String?
+  eazebusOrderId      String?         @unique
+  eazebusPaymentId    String?
+  paymentMeta         Json?
+  shippingAddress     Json?
+  billingAddress      Json?
+  trackingNumber      String?
+  shippingCarrier     String?
+  customerEmail       String?
+  customerName        String?
+  customerPhone       String?
+  activationGuideSent Boolean         @default(false)
+  preSessionBriefId   String?
+  paidAt              DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items OrderItem[]
+
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  productId     Int
+  courseId      String?
+  itemType      String   @default("PRODUCT") // "PRODUCT" | "COURSE" | "SERVICE"
+  name          String?
+  sku           String?
+  title         String?
+  unitPriceINR  Decimal? @db.Decimal(10, 2)
+  quantity      Int      @default(1)
+  totalPriceINR Decimal? @db.Decimal(10, 2)
+  priceCents    Int      // in paise
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 1:1 SERVICES & PRACTITIONERS
+// ─────────────────────────────────────────────────────────────
+
+model PractitionerProfile {
+  id              String   @id @default(cuid())
+  userId          String?  @unique
+  slug            String   @unique // "archana-jain", "sejal-jain"
+  name            String
+  title           String   // "Vedic Astrologer & Vastu Master", "Somatic & Energy Healer"
+  bio             String   @db.Text
+  avatarUrl       String?
+  specialties     String[] // ["Vedic Astrology", "Vastu Shastra", "Somatic Experiencing"]
+  languages       String[] @default(["English", "Hindi"])
+  experienceYears Int      @default(10)
+  hourlyRateINR   Decimal  @default(3500.00) @db.Decimal(10, 2)
+  calBookingUrl   String?
+  isActive        Boolean  @default(true)
+  rating          Float    @default(5.0)
+  reviewCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  offerings ServiceOffering[]
+
+  @@map("practitioner_profiles")
+}
+
+model ServiceOffering {
+  id               String      @id @default(cuid())
+  slug             String      @unique
+  practitionerId   String
+  name             String
+  headline         String?
+  description      String      @db.Text
+  serviceType      ServiceType
+  durationMinutes  Int         @default(60)
+  priceINR         Decimal     @db.Decimal(10, 2)
+  salePriceINR     Decimal?    @db.Decimal(10, 2)
+  isActive         Boolean     @default(true)
+  maxParticipants  Int         @default(1)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  practitioner PractitionerProfile @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+  bookings     ServiceBooking[]
+
+  @@index([practitionerId, isActive])
+  @@map("service_offerings")
+}
+
+model ServiceBooking {
+  id                  String           @id @default(cuid())
+  bookingReference    String           @unique
+  userId              String
+  serviceOfferingId   String?
+  practitionerName    String           // "Archana Jain", "Sejal Jain", or "Both"
+  serviceType         ServiceType
+  status              BookingStatus    @default(SCHEDULED)
+  scheduledStartTime  DateTime
+  scheduledEndTime    DateTime
+  meetingUrl          String?
+  calEventId          String?
+  preSessionBriefJson Json?
+  practitionerNotes   String?          @db.Text
+  prescriptionJson    Json?
+  feeINR              Decimal          @db.Decimal(10, 2)
+  orderId             String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceOffering ServiceOffering? @relation(fields: [serviceOfferingId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([scheduledStartTime])
+  @@map("service_bookings")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CONSENT & AUDIT EVENT STREAM
 // ─────────────────────────────────────────────────────────────
 
 model Consent {
@@ -146,15 +606,37 @@ model Consent {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   key       String   // e.g. "tracking", "health_sync", "marketing", "ai_personalization"
   value     Boolean
-  version   String   // policy version: "v1", "v2" etc.
+  version   String   @default("v1")
+  ipAddress String?
+  userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, key])
+  @@index([userId])
+  @@map("consents")
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  eventId   String   @unique @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventName String   // e.g. "journal.created", "course.enrolled", "purchase"
+  payload   Json
+  source    String   @default("server") // "client" | "server" | "web" | "mobile"
+  forwarded Boolean  @default(false)    // true once dispatched to GTM Server
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([eventName, createdAt])
+  @@index([userId, eventName])
+  @@map("events")
 }
 
 // ─────────────────────────────────────────────────────────────
-// Journals
+// JOURNALS, DAILY DOSE & HEALTH
 // ─────────────────────────────────────────────────────────────
 
 model Journal {
@@ -163,34 +645,37 @@ model Journal {
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title               String?
   body                String   @db.Text
-  images              String[] // array of R2 image URLs
-  voiceNoteUrl        String?  // R2 voice note url
+  images              String[]
+  voiceNoteUrl        String?
   aiReflection        String?  @db.Text
   practitionerVisible Boolean  @default(true)
-  mood                Int?     // 1–5 (1=difficult, 5=great)
-  tags                String[] // user-defined tags
+  mood                Int?     // 1–5
+  tags                String[]
   isDeleted           Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@index([userId, isDeleted, createdAt])
+  @@map("journals")
 }
-
-// ─────────────────────────────────────────────────────────────
-// Daily Dose
-// ─────────────────────────────────────────────────────────────
 
 model DailyDose {
   id          Int      @id @default(autoincrement())
   title       String
-  audioKey    String   // R2 object key (not full URL — presign at request time)
+  slug        String?  @unique
+  chakra      String?
+  audioKey    String
+  audioUrl    String?
   promptText  String   @db.Text
   durationSec Int
-  isActive    Boolean  @default(true)
-  publishDate DateTime
+  isActive     Boolean   @default(true)
+  scheduledFor DateTime?
+  publishDate  DateTime  @default(now())
   createdAt   DateTime @default(now())
 
   completions DailyDoseCompletion[]
+
+  @@map("daily_doses")
 }
 
 model DailyDoseCompletion {
@@ -202,60 +687,51 @@ model DailyDoseCompletion {
   completedAt DateTime  @default(now())
 
   @@unique([userId, doseId])
+  @@map("daily_dose_completions")
 }
 
-// ─────────────────────────────────────────────────────────────
-// Progress Engine
-// ─────────────────────────────────────────────────────────────
-
-// P_t = 0.35·S_t + 0.30·A_t + 0.25·J_t + 0.10·W_t
 model ProgressSnapshot {
   id             Int      @id @default(autoincrement())
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date           DateTime @db.Date
   score          Float    // overall P_t 0–100
-  sleepScore     Float    @default(50) // S_t
-  activityScore  Float    @default(0)  // A_t
-  journalScore   Float    @default(0)  // J_t
-  wellbeingScore Float    @default(50) // W_t (avg mood × 10)
+  sleepScore     Float    @default(50)
+  activityScore  Float    @default(0)
+  journalScore   Float    @default(0)
+  wellbeingScore Float    @default(50)
   createdAt      DateTime @default(now())
 
   @@unique([userId, date])
+  @@map("progress_snapshots")
 }
-
-// ─────────────────────────────────────────────────────────────
-// Achievements / Badges
-// ─────────────────────────────────────────────────────────────
 
 model Achievement {
   id       Int      @id @default(autoincrement())
   userId   String
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  key      String   // "FIRST_JOURNAL" | "DAY_7" | "DAY_21" | "DAY_30" | "DAY_90" | "7_DAY_STREAK" | "SLEEP_IMPROVED" | "PROGRESS_50" | "PROGRESS_75"
-  metadata Json?    // optional extra context
+  key      String
+  metadata Json?
   earnedAt DateTime @default(now())
 
   @@unique([userId, key])
+  @@map("achievements")
 }
 
-// ─────────────────────────────────────────────────────────────
-// Health
-// ─────────────────────────────────────────────────────────────
-
 model HealthSync {
-  id                   Int      @id @default(autoincrement())
-  userId               String
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider             String   // "google-fit" | "health-connect"
-  encryptedAccessToken String?  @db.Text
-  encryptedRefreshToken String? @db.Text
-  tokenExpiresAt       DateTime?
-  lastSyncAt           DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                    Int       @id @default(autoincrement())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider              String    // "google-fit" | "health-connect"
+  encryptedAccessToken  String?   @db.Text
+  encryptedRefreshToken String?   @db.Text
+  tokenExpiresAt        DateTime?
+  lastSyncAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@unique([userId, provider])
+  @@map("health_syncs")
 }
 
 model HealthMetric {
@@ -264,159 +740,18 @@ model HealthMetric {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   metricDate     DateTime @db.Date
   sleepMinutes   Int?
-  sleepScore     Int?     // 0–100 derived
+  sleepScore     Int?
   steps          Int?
   workoutMinutes Int?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@unique([userId, metricDate])
+  @@map("health_metrics")
 }
 
 // ─────────────────────────────────────────────────────────────
-// E-Commerce
-// ─────────────────────────────────────────────────────────────
-
-model Product {
-  id               Int      @id @default(autoincrement())
-  sku              String   @unique
-  slug             String   @unique
-  title            String
-  shortDescription String?  @db.Text
-  description      String   @db.Text
-  category         String   @default("")          // e.g. "Bracelets", "Vastu", "Crystals", "Combos", "Healing"
-  priceCents       Int                                 // stored in paise (INR × 100)
-  compareAtPriceCents Int?                             // MRP in paise — null means no strikethrough
-  currency         String   @default("INR")
-  images           String[]                            // R2 keys or external URLs
-  inventoryCount   Int      @default(0)
-  isActive         Boolean  @default(true)
-  productType      String   @default("physical")      // "physical" | "course" | "digital"
-  referenceId      Int?                                // courseId if productType === "course"
-  tags             String[]                            // e.g. ["Bestseller", "Sale", "Bundle"]
-  metadata         Json?                               // flexible key-value store
-  chakraAssociation String?                             // e.g. "heart", "root", "throat" — matches UserPortalData.chakraSelected
-  healingProperties Json?                               // freeform properties, e.g. { "intent": ["calm", "focus"], "element": "earth" }
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  orderItems       OrderItem[]
-}
-
-model Order {
-  id                Int       @id @default(autoincrement())
-  userId            String?
-  user              User?     @relation(fields: [userId], references: [id])
-  status            String    @default("PENDING")
-  // Fulfillment: PENDING → CONFIRMED → SHIPPED → DELIVERED | CANCELLED
-  paymentStatus     String    @default("PENDING")
-  // Payment:     PENDING → PAID | FAILED | REFUNDED
-  totalCents        Int
-  currency          String    @default("INR")
-  eazebusOrderId    String?   @unique
-  eazebusPaymentId  String?
-  paymentMeta       Json?
-  shippingAddress   Json?
-  trackingNumber    String?
-  customerEmail     String?
-  customerName      String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  items             OrderItem[]
-}
-
-model OrderItem {
-  id         Int     @id @default(autoincrement())
-  orderId    Int
-  order      Order   @relation(fields: [orderId], references: [id])
-  productId  Int
-  product    Product @relation(fields: [productId], references: [id])
-  sku        String
-  title      String
-  quantity   Int
-  priceCents Int
-}
-
-// ─────────────────────────────────────────────────────────────
-// Courses
-// ─────────────────────────────────────────────────────────────
-
-model Course {
-  id           Int      @id @default(autoincrement())
-  slug         String   @unique
-  title        String
-  description  String   @db.Text
-  thumbnailKey String?  // R2 key
-  isPaid       Boolean  @default(false)
-  priceCents   Int?
-  isPublished  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  modules      Module[]
-  enrolments   Enrolment[]
-}
-
-model Module {
-  id          Int     @id @default(autoincrement())
-  courseId    Int
-  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  title       String
-  ytVideoId   String
-  orderIndex  Int
-  durationSec Int?
-  isPreview   Boolean @default(false)
-
-  progress    CourseProgress[]
-}
-
-model Enrolment {
-  id         Int      @id @default(autoincrement())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId   Int
-  course     Course   @relation(fields: [courseId], references: [id])
-  enrolledAt DateTime @default(now())
-
-  @@unique([userId, courseId])
-}
-
-model CourseProgress {
-  id          Int       @id @default(autoincrement())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  moduleId    Int
-  module      Module    @relation(fields: [moduleId], references: [id])
-  completedAt DateTime?
-  watchedSec  Int       @default(0)
-
-  @@unique([userId, moduleId])
-}
-
-// ─────────────────────────────────────────────────────────────
-// Server-side event log (append-only)
-// ─────────────────────────────────────────────────────────────
-
-model Event {
-  id        Int      @id @default(autoincrement())
-  eventId   String   @unique @default(cuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  eventName String
-  // e.g. "journal.created" | "daily_dose.completed" | "purchase" | "sign_up"
-  // | "ai.tips.generated" | "health_sync.completed" | "cashfree.webhook.unknown"
-  payload   Json
-  source    String   @default("server") // "client" | "server"
-  forwarded Boolean  @default(false)    // true once relayed to GTM/ad platforms
-  createdAt DateTime @default(now())
-
-  @@index([eventName, createdAt])
-  @@index([userId, eventName])
-}
-
-// ─────────────────────────────────────────────────────────────
-// Portal & Astrological Models
+// PORTAL & ASTROLOGICAL REFERENCE MODELS
 // ─────────────────────────────────────────────────────────────
 
 model DailyDoseOverride {
@@ -429,6 +764,8 @@ model DailyDoseOverride {
   durationDays    Int
   source          String?
   createdAt       DateTime @default(now())
+
+  @@map("daily_dose_overrides")
 }
 
 model DailyDoseDelivery {
@@ -446,6 +783,7 @@ model DailyDoseDelivery {
   overrideSource String?
 
   @@unique([userId, date])
+  @@map("daily_dose_deliveries")
 }
 
 model UserPortalData {
@@ -472,6 +810,8 @@ model UserPortalData {
   portalCompletedAt  DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+
+  @@map("user_portal_data")
 }
 
 model Booking {
@@ -490,6 +830,8 @@ model Booking {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   therapySession    TherapySession?
+
+  @@map("bookings")
 }
 
 model TherapySession {
@@ -508,6 +850,8 @@ model TherapySession {
   notesSubmittedAt          DateTime?
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
+
+  @@map("therapy_sessions")
 }
 
 model Package {
@@ -520,6 +864,8 @@ model Package {
   amountPaid    Decimal   @db.Decimal(10, 2)
   purchasedAt   DateTime  @default(now())
   expiresAt     DateTime?
+
+  @@map("packages")
 }
 
 model CommunityMember {
@@ -531,6 +877,8 @@ model CommunityMember {
   lastActiveAt        DateTime @default(now())
   circlesAttended     Int      @default(0)
   challengesCompleted Int      @default(0)
+
+  @@map("community_members")
 }
 
 model Subscription {
@@ -543,22 +891,25 @@ model Subscription {
   nextBillingDate        DateTime
   razorpaySubscriptionId String?
   status                 String   @default("active")
+
+  @@map("subscriptions")
 }
 
 model LiveCircle {
-  id                   String    @id @default(cuid())
+  id                   String           @id @default(cuid())
   host                 String
   topic                String
   scheduledAt          DateTime
   zoomLink             String
-  attendeeCount        Int       @default(0)
+  attendeeCount        Int              @default(0)
   recordingUrl         String?
   recordingAvailableAt DateTime?
-  createdAt            DateTime  @default(now())
+  createdAt            DateTime         @default(now())
   rsvps                LiveCircleRSVP[]
+
+  @@map("live_circles")
 }
 
-// Per-user RSVP record — makes circle RSVP idempotent (one row per user+circle).
 model LiveCircleRSVP {
   id        String     @id @default(cuid())
   userId    String
@@ -568,6 +919,7 @@ model LiveCircleRSVP {
   createdAt DateTime   @default(now())
 
   @@unique([userId, circleId])
+  @@map("live_circle_rsvps")
 }
 
 model Challenge {
@@ -579,20 +931,23 @@ model Challenge {
   startDate      DateTime
   createdAt      DateTime                 @default(now())
   participations ChallengeParticipation[]
+
+  @@map("challenges")
 }
 
 model ChallengeParticipation {
-  id             String    @id @default(cuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id])
-  challengeId    String
-  challenge      Challenge @relation(fields: [challengeId], references: [id])
-  enrolledAt     DateTime  @default(now())
-  daysCompleted  Int       @default(0)
-  lastCheckInAt  DateTime? @db.Date // calendar date of the most recent check-in — guards one check-in per day
-  completedAt    DateTime?
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  challengeId   String
+  challenge     Challenge @relation(fields: [challengeId], references: [id])
+  enrolledAt    DateTime  @default(now())
+  daysCompleted Int       @default(0)
+  lastCheckInAt DateTime? @db.Date
+  completedAt   DateTime?
 
   @@unique([userId, challengeId])
+  @@map("challenge_participations")
 }
 
 model ChakraReveal {
@@ -602,6 +957,8 @@ model ChakraReveal {
   sub         String
   blockedText String @db.Text
   showsUpAs   String @db.Text
+
+  @@map("chakra_reveals")
 }
 
 model ArchetypeReveal {
@@ -611,6 +968,8 @@ model ArchetypeReveal {
   gift      String @db.Text
   wound     String @db.Text
   showsUpAs String @db.Text
+
+  @@map("archetype_reveals")
 }
 
 model TarotTheme {
@@ -618,6 +977,8 @@ model TarotTheme {
   themeName String   @unique
   message   String   @db.Text
   cardNames String[]
+
+  @@map("tarot_themes")
 }
 
 model ChartPrediction {
@@ -627,6 +988,7 @@ model ChartPrediction {
   predictionText String @db.Text
 
   @@unique([placementType, sign])
+  @@map("chart_predictions")
 }
 
 model PatternQuestion {
@@ -635,6 +997,8 @@ model PatternQuestion {
   questionText String @db.Text
   dimension    String
   options      Json
+
+  @@map("pattern_questions")
 }
 
 model PatternScoring {
@@ -645,6 +1009,7 @@ model PatternScoring {
   dimensionValue String
 
   @@unique([questionId, answer])
+  @@map("pattern_scorings")
 }
 
 model PatternProfile {
@@ -654,6 +1019,8 @@ model PatternProfile {
   relMatch       String
   childhoodMatch String
   profileText    String @db.Text
+
+  @@map("pattern_profiles")
 }
 
 model Reel {
@@ -670,6 +1037,8 @@ model Reel {
   publishedAt     DateTime?
   approvedBy      String?
   createdAt       DateTime  @default(now())
+
+  @@map("reels")
 }
 
 model ContentView {
@@ -680,13 +1049,10 @@ model ContentView {
   contentId         String
   viewedAt          DateTime @default(now())
   completionPercent Float?
+
+  @@map("content_views")
 }
 
-// ─────────────────────────────────────────────────────────────
-// Client Transformation Dashboard (Phase 1)
-// ─────────────────────────────────────────────────────────────
-
-/// Weekly cosmic guidance card shown at top of client dashboard
 model CosmicNote {
   id          String    @id @default(cuid())
   title       String
@@ -696,9 +1062,10 @@ model CosmicNote {
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@map("cosmic_notes")
 }
 
-/// Daily ritual check-in (under 5 min) — unique per user per calendar day
 model DailyCheckIn {
   id                String    @id @default(cuid())
   userId            String
@@ -711,7 +1078,7 @@ model DailyCheckIn {
   habitNote         String?   @db.Text
   beliefNote        String?   @db.Text
   journalNote       String?   @db.Text
-  emotions          String[]  // e.g. ["calm", "hopeful"]
+  emotions          String[]
   oneChange         String?   @db.Text
   appreciation      String?   @db.Text
   completedAt       DateTime?
@@ -720,9 +1087,9 @@ model DailyCheckIn {
 
   @@unique([userId, date])
   @@index([userId, date])
+  @@map("daily_check_ins")
 }
 
-/// Practitioner-assigned homework with client submission + review
 model ClientHomework {
   id             String    @id @default(cuid())
   userId         String
@@ -741,4 +1108,118 @@ model ClientHomework {
   updatedAt      DateTime  @updatedAt
 
   @@index([userId, status])
+  @@map("client_homework")
 }
+
+// ─────────────────────────────────────────────────────────────
+// COMMUNITY CIRCLES (Discussions & Feeds)
+// ─────────────────────────────────────────────────────────────
+
+model CommunityCircle {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  description   String   @db.Text
+  iconUrl       String?
+  coverImageUrl String?
+  isPrivate     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  members CircleMember[]
+  posts   CirclePost[]
+
+  @@map("community_circles")
+}
+
+model CircleMember {
+  id       String          @id @default(cuid())
+  userId   String
+  circleId String
+  joinedAt DateTime        @default(now())
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle   CommunityCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, circleId])
+  @@map("circle_members")
+}
+
+model CirclePost {
+  id         String   @id @default(cuid())
+  circleId   String
+  userId     String
+  title      String?
+  content    String   @db.Text
+  mediaUrls  String[]
+  likesCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  circle   CommunityCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments CircleComment[]
+
+  @@index([circleId, createdAt])
+  @@map("circle_posts")
+}
+
+model CircleComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  post CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@map("circle_comments")
+}
+
+// ─────────────────────────────────────────────────────────────
+// WEBHOOK IDEMPOTENCY & AUDIT LOG
+// ─────────────────────────────────────────────────────────────
+
+model WebhookEventLog {
+  id          String   @id @default(cuid())
+  gateway     String   // "EASEBUZZ_PRIMARY" | "EASEBUZZ_SECONDARY" | "CASHFREE" | "RAZORPAY"
+  eventId     String   @unique // txnid or payment_id or webhook event ID
+  eventType   String   // "payment.success" | "payment.failed" | "refund"
+  payload     Json
+  status      String   @default("PROCESSED") // "PROCESSED" | "FAILED" | "DUPLICATE"
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([gateway, eventId])
+  @@map("webhook_event_logs")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PRE-SESSION ASTROLOGICAL & SOMATIC BRIEFS
+// ─────────────────────────────────────────────────────────────
+
+model PreSessionBrief {
+  id                    String    @id @default(cuid())
+  bookingId             String?   @unique
+  orderId               String?
+  userId                String
+  practitionerName      String    // "Archana Jain" | "Sejal Jain" | "Both"
+  serviceType           String
+  astrologicalSummary   Json      // Placements, Dasha, Transit insights, Elemental balance, Gemstone remedies
+  somaticSummary        Json      // Nervous system tier, Trauma indicators, Polyvagal state, Breath prescription
+  clientIntakeSummary   Json      // Intentions, answers, goals
+  sessionFocusThemes    String[]
+  recommendedRemedies   String[]
+  googleCalendarEventId String?
+  isDelivered           Boolean   @default(false)
+  deliveredAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([practitionerName])
+  @@map("pre_session_briefs")
+}
+

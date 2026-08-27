@@ -13,6 +13,7 @@ const TAB_ITEMS = [
   { href: '/dashboard/progress', label: 'Progress' },
   { href: '/dashboard/journey', label: 'Journey' },
   { href: '/dashboard/appointments', label: 'Sessions' },
+  { href: '/shop', label: 'Shop' },
 ]
 
 export default function MobileNav() {

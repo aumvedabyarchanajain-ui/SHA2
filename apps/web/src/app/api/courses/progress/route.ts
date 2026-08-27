@@ -29,22 +29,27 @@ export async function POST(req: NextRequest) {
 
   const { courseId, moduleId, progress, status } = parsed.data
 
-  const courseModule = await prisma.module.findUnique({
-    where: { id: Number(moduleId) },
+  const modIdStr = String(moduleId)
+  const courseIdStr = String(courseId)
+
+  const courseModule = await prisma.courseModule.findFirst({
+    where: {
+      OR: [{ id: modIdStr }, { courseId: courseIdStr }],
+    },
     select: { id: true, courseId: true, durationSec: true },
   })
-  if (!courseModule || courseModule.courseId !== Number(courseId)) {
+  if (!courseModule) {
     return NextResponse.json({ success: false, error: 'Module not found' }, { status: 404 })
   }
 
-  const enrolment = await prisma.enrolment.findUnique({
+  const enrollment = await prisma.courseEnrollment.findUnique({
     where: {
       userId_courseId: { userId: session.user.id, courseId: courseModule.courseId },
     },
     select: { id: true },
   })
-  if (!enrolment) {
-    return NextResponse.json({ success: false, error: 'Enrolment required' }, { status: 403 })
+  if (!enrollment) {
+    return NextResponse.json({ success: false, error: 'Enrollment required' }, { status: 403 })
   }
 
   const watchedSec =
@@ -52,21 +57,23 @@ export async function POST(req: NextRequest) {
       ? Math.round((progress / 100) * courseModule.durationSec)
       : undefined
 
-  await prisma.courseProgress.upsert({
+  // Upsert progress
+  await prisma.lessonProgress.upsert({
     where: {
-      userId_moduleId: { userId: session.user.id, moduleId: courseModule.id },
+      userId_lessonId: { userId: session.user.id, lessonId: courseModule.id },
     },
     create: {
       userId: session.user.id,
-      moduleId: courseModule.id,
-      completedAt: status === 'completed' ? new Date() : null,
-      watchedSec: watchedSec ?? 0,
+      lessonId: courseModule.id,
+      isCompleted: status === 'completed' || (progress != null && progress >= 85),
+      completedAt: status === 'completed' || (progress != null && progress >= 85) ? new Date() : null,
+      watchTimeSeconds: watchedSec ?? 0,
     },
     update: {
-      ...(watchedSec != null && { watchedSec }),
-      ...(status === 'completed' && { completedAt: new Date() }),
+      ...(watchedSec != null && { watchTimeSeconds: watchedSec }),
+      ...(status === 'completed' || (progress != null && progress >= 85) ? { isCompleted: true, completedAt: new Date() } : {}),
     },
-  })
+  }).catch(() => null)
 
   return NextResponse.json({ success: true })
 }

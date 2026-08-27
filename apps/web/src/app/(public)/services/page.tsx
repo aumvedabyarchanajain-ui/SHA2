@@ -1,24 +1,29 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ServiceCard from "@/components/ServiceCard";
 import {
   BrainCircuit,
   Sparkles,
   Music,
   Wind,
-  MessageSquare,
-  Zap,
-  CalendarCheck,
   Moon,
   Home,
   Gem,
   Layers,
-  ShieldCheck,
-  ArrowRight
+  CalendarCheck,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  X,
+  Loader2,
+  HeartHandshake
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { useCart } from "@/lib/cart";
+import { useCartDrawer } from "@/components/cart/CartDrawer";
+import { showSuccess } from "@/utils/toast";
 
 const SEJAL_SERVICES = [
   {
@@ -28,268 +33,363 @@ const SEJAL_SERVICES = [
     whoItIsFor: "Individuals trapped in negative thought loops, chronic anxiety, or self-limiting belief systems.",
     outcome: "Cognitive clarity, emotional resilience, and a systematic shift in behavioral patterns.",
     icon: BrainCircuit,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    accent: "bg-blue-400"
   },
   {
-    title: "Hypnosis",
+    title: "Hypnosis & Subconscious Rewiring",
     shortDesc: "Subconscious Rewiring",
     whatItIs: "Deep-state trance work designed to bypass the critical conscious mind and plant seeds of transformation directly into the subconscious.",
     whoItIsFor: "Those struggling with deep-seated habits, phobias, or trauma that conscious effort hasn't resolved.",
     outcome: "Rapid subconscious alignment and the dissolution of long-standing internal blockages.",
     icon: Moon,
-    color: "text-indigo-600",
-    bg: "bg-indigo-50",
-    accent: "bg-indigo-400"
   },
   {
-    title: "Sound Therapy",
+    title: "Sound Therapy & Solfeggio",
     shortDesc: "Frequency Regulation",
     whatItIs: "The use of Solfeggio frequencies and binaural beats to entrain the brain into states of deep healing and coherence.",
     whoItIsFor: "High-stress professionals and individuals seeking a non-verbal path to nervous system regulation.",
     outcome: "Profound nervous system harmony and a measurable reduction in cortisol levels.",
     icon: Music,
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    accent: "bg-purple-400"
   },
   {
-    title: "Breathwork",
+    title: "Somatic Breathwork & Trauma Release",
     shortDesc: "Nervous System Reset",
     whatItIs: "Active meditation through controlled breathing patterns to release stored somatic tension and oxygenate the cellular body.",
     whoItIsFor: "Anyone experiencing burnout, emotional stagnation, or a disconnected mind-body state.",
     outcome: "Immediate physiological calm and a renewed sense of vital energy flow.",
     icon: Wind,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    accent: "bg-emerald-400"
-  },
-  {
-    title: "Talk Therapy",
-    shortDesc: "Conscious Processing",
-    whatItIs: "A safe, non-judgmental space for verbal exploration of life's complexities, guided by structured psychological principles.",
-    whoItIsFor: "Individuals seeking clarity on relationships, career transitions, or general mental health support.",
-    outcome: "Deepened self-understanding and the development of healthy coping mechanisms.",
-    icon: MessageSquare,
-    color: "text-slate-600",
-    bg: "bg-slate-100",
-    accent: "bg-slate-400"
-  },
-  {
-    title: "Bioresonance Frequency Therapy",
-    shortDesc: "Electromagnetic Healing",
-    whatItIs: "Utilizing advanced bio-feedback technology to analyze and harmonize the body's unique electromagnetic signature.",
-    whoItIsFor: "Those dealing with chronic fatigue, energetic depletion, or unexplained physical imbalances.",
-    outcome: "Restored cellular vitality and optimized energetic bio-field coherence.",
-    icon: Zap,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    accent: "bg-amber-400"
-  },
-  {
-    title: "Behavior Dosing",
-    shortDesc: "Daily Healing Protocol System",
-    whatItIs: "A proprietary system of micro-interventions designed to integrate healing into the fabric of your daily life.",
-    whoItIsFor: "Seekers who want to bridge the gap between therapy sessions and real-world application.",
-    outcome: "Sustainable lifestyle transformation through consistent, small-scale systemic shifts.",
-    icon: CalendarCheck,
-    color: "text-rose-600",
-    bg: "bg-rose-50",
-    accent: "bg-rose-400"
   }
 ];
 
 const ARCHANA_SERVICES = [
   {
-    title: "Astrology",
+    title: "Vedic Astrology Deep-Dive",
     shortDesc: "Vedic + Western Synthesis",
     whatItIs: "A comprehensive mapping of your soul's blueprint using both ancient Jyotish and modern Western astrological techniques.",
     whoItIsFor: "Seekers looking for life purpose, timing for major decisions, and understanding karmic patterns.",
     outcome: "A clear cosmic roadmap and a profound sense of alignment with universal timing.",
     icon: Sparkles,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    accent: "bg-amber-400"
   },
   {
-    title: "Tarot / Angel Cards",
+    title: "Tarot & Intuitive Guidance",
     shortDesc: "Intuitive Guidance",
     whatItIs: "Archetypal divination to tap into the collective unconscious and provide immediate answers to pressing life questions.",
     whoItIsFor: "Individuals at a crossroads needing immediate clarity or a fresh perspective on a specific situation.",
     outcome: "Actionable intuitive direction and the peace that comes from spiritual confirmation.",
     icon: Layers,
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    accent: "bg-purple-400"
   },
   {
-    title: "Vastu Shastra",
+    title: "Vastu Shastra Consultation",
     shortDesc: "Residential + Commercial",
     whatItIs: "The ancient science of architecture and spatial geometry to align your physical environment with natural laws.",
     whoItIsFor: "Homeowners and business owners seeking to remove energetic obstacles to prosperity and peace.",
     outcome: "A harmonized living or working environment that actively supports your growth and success.",
     icon: Home,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    accent: "bg-emerald-400"
   },
   {
-    title: "Crystallomancy",
+    title: "Crystallomancy & Energetic Alignment",
     shortDesc: "Vibrational Alignment",
     whatItIs: "The strategic use of mineral vibrations to amplify intentions and clear stagnant energy from the bio-field.",
     whoItIsFor: "Those seeking energetic protection, amplified manifestation, or a deeper connection to Earth's frequencies.",
     outcome: "An amplified energetic state and a cleared, protected personal sanctuary.",
     icon: Gem,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    accent: "bg-blue-400"
   }
 ];
 
-const PROGRAMS = [
+const SIGNATURE_PACKAGES = [
   {
-    title: "The 21-Day Synthesis",
-    desc: "A rapid immersion into the Aumveda methodology for immediate systemic reset.",
-    price: "₹45,000",
-    tag: "Most Popular"
+    id: "pkg-1",
+    title: "1:1 Somatic & Nervous System Session",
+    practitioner: "Sejal Jain",
+    duration: "60 Minutes",
+    price: 4500,
+    priceCents: 450000,
+    desc: "Polyvagal regulation, trauma release, breathwork prescription, and custom somatic audio memo.",
+    tag: "Clinical Focus",
   },
   {
-    title: "The Cosmic Alignment",
-    desc: "A 3-month deep dive into your psychological and celestial architecture.",
-    price: "₹1,20,000",
-    tag: "Deep Transformation"
+    id: "pkg-2",
+    title: "1:1 Vedic Astrology & Karmic Blueprint",
+    practitioner: "Archana Jain",
+    duration: "60 Minutes",
+    price: 4500,
+    priceCents: 450000,
+    desc: "Complete natal chart synthesis, Mahadasha timing, gemstone remedies, and Vastu directional alignment.",
+    tag: "Sacred Lineage",
   },
   {
-    title: "Executive Sanctuary",
-    desc: "Bespoke high-performance wellness for leaders and visionaries.",
-    price: "Custom",
-    tag: "Elite"
+    id: "pkg-3",
+    title: "The Dual Synergy Session",
+    practitioner: "Archana & Sejal Jain",
+    duration: "90 Minutes",
+    price: 8500,
+    priceCents: 850000,
+    desc: "Mother-daughter co-facilitated session bridging cosmic astrology timing with nervous system somatic anchoring.",
+    tag: "Master Sanctuary",
   }
 ];
 
 export default function ServicesPage() {
+  const [selectedService, setSelectedService] = useState<typeof SIGNATURE_PACKAGES[0] | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date(Date.now() + 24 * 3600_000).toISOString().split('T')[0]
+  );
+  const [slots, setSlots] = useState<any[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  const { addItem } = useCart();
+  const { openCart } = useCartDrawer();
+
+  useEffect(() => {
+    if (!selectedService) return;
+    setLoadingSlots(true);
+    fetch(`/api/services/slots?practitioner=${encodeURIComponent(selectedService.practitioner)}&date=${selectedDate}`)
+      .then(res => res.json())
+      .then(data => {
+        setSlots(data.slots || []);
+        if (data.slots && data.slots.length > 0) {
+          setSelectedSlot(data.slots[0]);
+        } else {
+          setSelectedSlot(null);
+        }
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false));
+  }, [selectedService, selectedDate]);
+
+  const handleBookSession = () => {
+    if (!selectedService) return;
+
+    addItem({
+      productId: `srv_${selectedService.id}` as any,
+      slug: selectedService.id,
+      title: `${selectedService.title} (${selectedService.practitioner})`,
+      priceCents: selectedService.priceCents,
+      compareAtPriceCents: null,
+      imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800',
+      inventoryCount: 10,
+      productType: 'service',
+      bundle: null,
+    });
+
+    showSuccess(`Session with ${selectedService.practitioner} added to cart!`);
+    setSelectedService(null);
+    openCart();
+  };
+
   return (
-    <div className="min-h-screen bg-white">
-      <main className="pt-32 pb-24">
-        <div className="max-w-7xl mx-auto px-6 space-y-32">
-          {/* Header */}
-          <header className="max-w-4xl space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-100 text-amber-600 text-[10px] font-black uppercase tracking-[0.3em]">
-              <Sparkles className="w-3 h-3" /> The Architecture of Evolution
-            </div>
-            <h1 className="text-5xl md:text-7xl font-serif font-bold text-slate-900 leading-[1.1]">
-              Bespoke Paths to <br />
-              <span className="text-amber-600 italic">Holistic Transcendence</span>
-            </h1>
-            <p className="text-xl text-slate-500 leading-relaxed max-w-2xl">
-              Two pillars. One system. Archana Jain maps your cosmic blueprint through Astrology, Vastu,
-              and Vedic sciences. Sejal Jain rewires it through CBT, hypnosis, and sound therapy.
-              Together, they deliver what neither tradition can achieve alone.
-            </p>
-          </header>
-
-          {/* Archana Section — FIRST (senior founder) */}
-          <section className="space-y-16">
-            <div className="flex flex-col md:flex-row justify-between items-end gap-8 border-b border-slate-100 pb-12">
-              <div className="space-y-4">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-600">The Eastern Pillar</h2>
-                <h3 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">Archana Jain</h3>
-                <p className="text-slate-500 font-medium">Astrology · Vastu · Tarot · Crystallomancy</p>
+    <div className="min-h-screen bg-parchment texture-paper pt-32 pb-24 text-ink-text">
+      {/* Booking Slot Modal */}
+      {selectedService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[hsl(var(--av-ink)/0.8)] backdrop-blur-md">
+          <div className="w-full max-w-xl bg-parchment rounded-2xl overflow-hidden shadow-2xl border border-[hsl(var(--av-gold)/0.3)] space-y-6">
+            <div className="p-6 bg-night text-parchment flex items-center justify-between border-b border-[hsl(var(--av-parchment)/0.1)]">
+              <div className="space-y-1.5">
+                <Badge className="bg-[hsl(var(--av-gold)/0.15)] text-gold-soft border-[hsl(var(--av-gold)/0.3)] text-[10px] uppercase font-body tracking-[0.2em]">
+                  Sanctuary Calendar Synced
+                </Badge>
+                <h3 className="font-serif text-xl font-normal text-parchment">{selectedService.title}</h3>
+                <p className="text-xs text-[hsl(var(--av-parchment)/0.6)] font-body">Practitioner: {selectedService.practitioner} &bull; {selectedService.duration}</p>
               </div>
-              <div className="flex items-center gap-3 text-amber-600 font-bold text-sm">
-                <Sparkles className="w-5 h-5" />
-                Ancient Wisdom Precisely Applied
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              {ARCHANA_SERVICES.map((service, i) => (
-                <ServiceCard key={i} {...service} />
-              ))}
-            </div>
-          </section>
-
-          {/* Sejal Section */}
-          <section className="space-y-16">
-            <div className="flex flex-col md:flex-row justify-between items-end gap-8 border-b border-slate-100 pb-12">
-              <div className="space-y-4">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">The Western Pillar</h2>
-                <h3 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">Sejal Jain</h3>
-                <p className="text-slate-500 font-medium">CBT · Hypnosis · Sound Therapy · Breathwork</p>
-              </div>
-              <div className="flex items-center gap-3 text-blue-600 font-bold text-sm">
-                <ShieldCheck className="w-5 h-5" />
-                Clinical Precision meets Spiritual Depth
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              {SEJAL_SERVICES.map((service, i) => (
-                <ServiceCard key={i} {...service} />
-              ))}
-            </div>
-          </section>
-
-          {/* Programs Section */}
-          <section className="py-24 bg-slate-900 rounded-[60px] mx-[-24px] px-12 md:px-24 overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-24 opacity-10">
-              <Layers className="w-96 h-96 text-amber-400" />
+              <button
+                onClick={() => setSelectedService(null)}
+                className="text-[hsl(var(--av-parchment)/0.6)] hover:text-parchment p-2 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 stroke-[1.5]" />
+              </button>
             </div>
 
-            <div className="relative z-10 space-y-16">
-              <div className="text-center space-y-4">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-400">Structured Transformations</h2>
-                <h3 className="text-4xl md:text-6xl font-serif font-bold text-white">Aumveda Programs</h3>
-                <p className="text-slate-400 max-w-2xl mx-auto">
-                  Comprehensive journeys that integrate multiple pillars for profound, lasting evolution.
-                </p>
+            <div className="p-6 md:p-8 space-y-6">
+              {/* Date Picker */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-mute uppercase tracking-[0.24em] flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-gold" /> Select Consultation Date:
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={e => setSelectedDate(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-stone bg-card text-ink-text text-sm font-body focus:outline-none focus:ring-1 focus:ring-gold"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {PROGRAMS.map((program, i) => (
-                  <div key={i} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[40px] p-10 flex flex-col justify-between group hover:bg-white/10 transition-all duration-500">
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full">
-                          {program.tag}
-                        </span>
-                      </div>
-                      <h4 className="text-2xl font-serif font-bold text-white">{program.title}</h4>
-                      <p className="text-slate-400 text-sm leading-relaxed">{program.desc}</p>
-                    </div>
-                    <div className="pt-10 space-y-6">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-white">{program.price}</span>
-                        {program.price !== 'Custom' && <span className="text-slate-500 text-xs font-bold uppercase">Starting at</span>}
-                      </div>
-                      <Button asChild className="w-full bg-amber-400 text-slate-900 hover:bg-white rounded-2xl h-14 font-bold text-lg">
-                        <Link href="/contact">Inquire Now</Link>
-                      </Button>
-                    </div>
+              {/* Slots List */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-mute uppercase tracking-[0.24em] flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-gold" /> Available Time Slots (Asia/Kolkata IST):
+                </label>
+
+                {loadingSlots ? (
+                  <div className="py-8 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-gold animate-spin" />
                   </div>
-                ))}
+                ) : slots.length === 0 ? (
+                  <div className="p-4 bg-card rounded-xl border border-stone text-center text-xs text-mute font-body">
+                    No slots available on this date. Please pick another date.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5 max-h-48 overflow-y-auto pr-1">
+                    {slots.map((s, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedSlot(s)}
+                        className={`p-3 rounded-xl text-xs font-body font-medium text-left border transition-all flex items-center justify-between ${
+                          selectedSlot?.startTime === s.startTime
+                            ? 'bg-night text-gold-soft border-night shadow-xs'
+                            : 'bg-card border-stone text-ink-text hover:border-[hsl(var(--av-gold)/0.4)]'
+                        }`}
+                      >
+                        <span>{s.formattedTime}</span>
+                        {selectedSlot?.startTime === s.startTime && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-gold shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Summary and Confirmation Button */}
+              <div className="pt-4 border-t border-stone flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-mute">Consultation Fee</p>
+                  <p className="font-mono text-xl font-bold text-night tabular-nums">₹{selectedService.price.toLocaleString('en-IN')}</p>
+                </div>
+
+                <Button
+                  onClick={handleBookSession}
+                  disabled={!selectedSlot}
+                  className="bg-gold hover:bg-gold-soft text-ink font-body text-xs font-medium uppercase tracking-[0.14em] rounded-full h-11 px-6 shadow-sm hover:shadow-[0_4px_14px_rgba(201,168,76,0.35)] transition-all active:scale-[0.98]"
+                >
+                  <CalendarCheck className="w-4 h-4 mr-2" /> Confirm & Add to Sanctuary
+                </Button>
               </div>
             </div>
-          </section>
-
-          {/* Final CTA */}
-          <section className="text-center space-y-12 py-12">
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">
-              Not sure where to <span className="text-amber-600 italic">begin?</span>
-            </h2>
-            <p className="text-slate-500 max-w-xl mx-auto text-lg">
-              Book a discovery call to determine which path aligns best with your current energetic and psychological needs.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Button asChild className="h-16 px-12 rounded-2xl bg-slate-900 hover:bg-black text-white font-bold text-lg shadow-2xl shadow-slate-200">
-                <Link href="/contact">Book Discovery Call</Link>
-              </Button>
-              <Button asChild variant="ghost" className="h-16 px-10 rounded-2xl border border-slate-200 font-bold text-lg">
-                <Link href="/about">Meet the Healers</Link>
-              </Button>
-            </div>
-          </section>
+          </div>
         </div>
-      </main>
+      )}
+
+      <div className="max-w-[1120px] mx-auto px-6 space-y-20">
+        {/* Header */}
+        <div className="max-w-3xl space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-night text-gold-soft text-[11px] font-body uppercase tracking-[0.24em] border border-[hsl(var(--av-gold)/0.3)]">
+            <HeartHandshake className="w-3.5 h-3.5 text-gold" /> 1:1 Clinical Healing Sanctuary
+          </div>
+          <h1 className="av-display text-night">
+            Sacred Neuro-Vedic <br />
+            <span className="italic text-gold">1:1 Consultations</span>
+          </h1>
+          <p className="av-lede text-mute max-w-[65ch]">
+            Direct 1:1 sessions with Archana Jain (Vedic Astrologer & Vastu Master, Jaipur) and Sejal Jain (Somatic Healing Facilitator & Coach, Mumbai). Every session includes an automated pre-session diagnostic brief and calendar synchronization.
+          </p>
+        </div>
+
+        {/* Signature Consultation Tiers */}
+        <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 border-b border-stone pb-4">
+            <h2 className="av-title text-night text-2xl md:text-3xl">1:1 Signature Consultation Tracks</h2>
+            <span className="text-xs font-body tracking-wider text-mute uppercase">
+              Instant Google Meet & Calendar Sync
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            {SIGNATURE_PACKAGES.map(pkg => (
+              <div
+                key={pkg.id}
+                className="av-card-luxury rounded-2xl p-8 flex flex-col justify-between relative group overflow-hidden"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-body font-medium uppercase tracking-[0.24em] text-gold bg-night px-2.5 py-1 rounded-full border border-[hsl(var(--av-gold)/0.3)]">
+                      {pkg.tag}
+                    </span>
+                    <span className="text-xs font-body text-mute flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 stroke-[1.5]" /> {pkg.duration}
+                    </span>
+                  </div>
+
+                  <h3 className="font-serif text-2xl font-normal text-night leading-snug">
+                    {pkg.title}
+                  </h3>
+
+                  <p className="text-xs font-body uppercase tracking-[0.2em] text-gold">
+                    Facilitator: {pkg.practitioner}
+                  </p>
+
+                  <p className="text-[13px] text-mute font-body leading-relaxed">
+                    {pkg.desc}
+                  </p>
+                </div>
+
+                <div className="pt-8 border-t border-stone space-y-4 mt-6">
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-mono text-2xl font-bold text-night tabular-nums">
+                      ₹{pkg.price.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[11px] font-body text-sage font-medium">
+                      Includes diagnostic brief
+                    </span>
+                  </div>
+
+                  <Button
+                    onClick={() => setSelectedService(pkg)}
+                    className="w-full h-11 rounded-full bg-night hover:bg-ink text-gold-soft font-body text-xs tracking-wider uppercase border border-[hsl(var(--av-gold)/0.3)] shadow-xs transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                    <Calendar className="w-3.5 h-3.5" /> Select Date & Book
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sejal's Modalities */}
+        <div className="space-y-8">
+          <div className="border-b border-stone pb-4">
+            <span className="av-eyebrow-ink text-gold">Somatic Science</span>
+            <h2 className="av-title text-night text-2xl md:text-3xl mt-1">Sejal Jain — Nervous System & Somatic Modalities</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {SEJAL_SERVICES.map((srv, idx) => (
+              <ServiceCard
+                key={idx}
+                title={srv.title}
+                shortDesc={srv.shortDesc}
+                whatItIs={srv.whatItIs}
+                whoItIsFor={srv.whoItIsFor}
+                outcome={srv.outcome}
+                icon={srv.icon}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Archana's Modalities */}
+        <div className="space-y-8">
+          <div className="border-b border-stone pb-4">
+            <span className="av-eyebrow-ink text-gold">Vedic Lineage</span>
+            <h2 className="av-title text-night text-2xl md:text-3xl mt-1">Archana Jain — Jyotish & Vastu Modalities</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {ARCHANA_SERVICES.map((srv, idx) => (
+              <ServiceCard
+                key={idx}
+                title={srv.title}
+                shortDesc={srv.shortDesc}
+                whatItIs={srv.whatItIs}
+                whoItIsFor={srv.whoItIsFor}
+                outcome={srv.outcome}
+                icon={srv.icon}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+

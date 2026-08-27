@@ -29,11 +29,8 @@ export async function GET() {
 
   if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const subscriptionActive =
-    user.subscription?.status === 'active' && user.subscription.plan
-  const membershipTier = subscriptionActive
-    ? user.subscription!.plan
-    : user.packages[0]?.packageType ?? 'Member'
+  const activeSub = user.subscription && (user.subscription.status === 'active' || user.subscription.status === 'ACTIVE') ? user.subscription : null
+  const membershipTier = activeSub?.plan || user.packages[0]?.packageType || 'Member'
 
   return NextResponse.json({
     displayName: user.name ?? 'Aumveda Member',

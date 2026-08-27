@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const [published, enrolments, progressRows] = await Promise.all([
+  const [published, enrollments, progressRows] = await Promise.all([
     prisma.course.findMany({
       where: { isPublished: true },
       orderBy: { createdAt: 'asc' },
@@ -21,53 +21,73 @@ export async function GET() {
         title: true,
         description: true,
         thumbnailKey: true,
+        thumbnailUrl: true,
         isPaid: true,
         priceCents: true,
         modules: {
-          orderBy: { orderIndex: 'asc' },
+          orderBy: { sortOrder: 'asc' },
           select: {
             id: true,
             title: true,
             durationSec: true,
             isPreview: true,
-            orderIndex: true,
+            sortOrder: true,
+            lessons: {
+              select: {
+                id: true,
+                title: true,
+                durationSeconds: true,
+                isFreePreview: true,
+              },
+            },
           },
         },
       },
     }),
-    prisma.enrolment.findMany({
+    prisma.courseEnrollment.findMany({
       where: { userId: session.user.id },
       select: { courseId: true },
     }),
-    prisma.courseProgress.findMany({
+    prisma.lessonProgress.findMany({
       where: { userId: session.user.id },
-      select: { moduleId: true, completedAt: true, watchedSec: true },
+      select: { lessonId: true, isCompleted: true, watchTimeSeconds: true },
     }),
   ])
 
-  const enrolledSet = new Set(enrolments.map((e) => e.courseId))
-  const progressByModule = new Map(progressRows.map((p) => [p.moduleId, p]))
+  const enrolledSet = new Set(enrollments.map((e: { courseId: string }) => e.courseId))
+  const progressByLesson = new Map(progressRows.map((p: { lessonId: string; isCompleted: boolean; watchTimeSeconds: number }) => [p.lessonId, p]))
 
-  const courses = published.map((course) => {
+  const courses = published.map((course: any) => {
     const enrolled = enrolledSet.has(course.id)
-    const modules = course.modules.map((m) => {
-      const prog = progressByModule.get(m.id)
+    const modules = course.modules.map((m: any) => {
+      const lessons = (m.lessons || []).map((l: any) => {
+        const prog = progressByLesson.get(l.id)
+        return {
+          id: l.id,
+          title: l.title,
+          durationSec: l.durationSeconds,
+          isPreview: l.isFreePreview,
+          completed: Boolean(prog?.isCompleted),
+          watchedSec: prog?.watchTimeSeconds ?? 0,
+        }
+      })
+      const isCompleted = lessons.length > 0 && lessons.every((l: any) => l.completed)
       return {
         id: m.id,
         title: m.title,
         durationSec: m.durationSec,
         isPreview: m.isPreview,
-        orderIndex: m.orderIndex,
-        completed: Boolean(prog?.completedAt),
-        watchedSec: prog?.watchedSec ?? 0,
+        sortOrder: m.sortOrder,
+        completed: isCompleted,
+        lessons,
       }
     })
 
-    const completedModules = modules.filter((m) => m.completed).length
+    const completedModules = modules.filter((m: any) => m.completed).length
     const totalModules = modules.length
     const progress = totalModules ? Math.round((completedModules / totalModules) * 100) : 0
     const continueModule = enrolled
-      ? modules.find((m) => !m.completed) ?? modules[modules.length - 1] ?? null
+      ? modules.find((m: any) => !m.completed) ?? modules[modules.length - 1] ?? null
       : null
 
     return {
@@ -75,7 +95,7 @@ export async function GET() {
       slug: course.slug,
       title: course.title,
       description: course.description,
-      thumbnailUrl: course.thumbnailKey ? r2PublicUrl(course.thumbnailKey) : null,
+      thumbnailUrl: course.thumbnailUrl || (course.thumbnailKey ? r2PublicUrl(course.thumbnailKey) : null),
       isPaid: course.isPaid,
       priceCents: course.priceCents,
       enrolled,
@@ -84,7 +104,7 @@ export async function GET() {
       totalModules,
       continueModuleId: continueModule?.id ?? null,
       continueModuleTitle: continueModule?.title ?? null,
-      modules: enrolled ? modules : modules.filter((m) => m.isPreview),
+      modules: enrolled ? modules : modules.filter((m: any) => m.isPreview),
     }
   })
 

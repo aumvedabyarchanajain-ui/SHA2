@@ -306,4 +306,52 @@
   .font-serif {
     font-family: var(--font-serif), Georgia, serif;
   }
+
+  /* Sacred Luxury Design System Utilities */
+  .av-card-luxury {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--av-stone));
+    transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .av-card-luxury:hover {
+    border-color: hsl(var(--av-gold) / 0.4);
+    box-shadow: 0 16px 36px -12px hsl(var(--av-ink) / 0.08), 0 0 1px 1px hsl(var(--av-gold) / 0.15);
+    transform: translateY(-2px);
+  }
+
+  .av-card-night {
+    background: hsl(var(--av-night) / 0.7);
+    border: 1px solid hsl(var(--av-parchment) / 0.1);
+    backdrop-filter: blur(16px);
+    transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .av-card-night:hover {
+    border-color: hsl(var(--av-gold) / 0.45);
+    box-shadow: 0 20px 40px -15px hsl(var(--av-ink) / 0.6), 0 0 20px 0 hsl(var(--av-gold) / 0.12);
+    transform: translateY(-2px);
+  }
+
+  .av-press {
+    transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.15s ease-out;
+  }
+  .av-press:active {
+    transform: scale(0.98);
+  }
+
+  .av-glow-gold-subtle {
+    box-shadow: 0 0 24px -4px hsl(var(--av-gold) / 0.25);
+  }
+
+  .av-hairline-gold {
+    border: 1px solid hsl(var(--av-gold) / 0.35);
+  }
+
+  .av-hairline-dark {
+    border: 1px solid hsl(var(--av-parchment) / 0.12);
+  }
+
+  .av-hairline-light {
+    border: 1px solid hsl(var(--av-stone) / 0.85);
+  }
 }
+

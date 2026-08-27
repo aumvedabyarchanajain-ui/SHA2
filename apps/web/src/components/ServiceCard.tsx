@@ -14,9 +14,6 @@ interface ServiceCardProps {
   whoItIsFor: string;
   outcome: string;
   icon: React.ElementType;
-  color: string;
-  bg: string;
-  accent: string;
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({
@@ -26,9 +23,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   whoItIsFor,
   outcome,
   icon: Icon,
-  color,
-  bg,
-  accent
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -37,35 +31,31 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       layout
       onClick={() => setIsExpanded(!isExpanded)}
       className={cn(
-        "relative overflow-hidden rounded-[32px] border transition-all duration-500 cursor-pointer group",
-        isExpanded ? "bg-white shadow-2xl border-slate-200" : cn("bg-slate-50/50 border-transparent hover:bg-white hover:shadow-xl", bg)
+        "relative overflow-hidden rounded-2xl border transition-all duration-400 cursor-pointer group",
+        isExpanded
+          ? "bg-[hsl(var(--card))] border-[hsl(var(--av-gold)/0.5)] shadow-lg shadow-[hsl(var(--av-ink)/0.06)]"
+          : "bg-[hsl(var(--card)/0.8)] border-[hsl(var(--av-stone))] hover:border-[hsl(var(--av-gold)/0.4)] hover:shadow-md hover:bg-[hsl(var(--card))]"
       )}
     >
-      {/* Energy Ripple Effect on Hover */}
-      <div className={cn(
-        "absolute -top-12 -right-12 w-24 h-24 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-700 blur-2xl",
-        accent
-      )} />
+      {/* Ambient gold glow highlight */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--av-gold)/0.12),transparent_70%)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-      <div className="p-8 md:p-10">
+      <div className="p-7 md:p-8">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <div className={cn(
-              "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-500 group-hover:scale-110",
-              bg, color
-            )}>
-              <Icon className="w-8 h-8" />
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--av-night))] text-[hsl(var(--av-gold-soft))] flex items-center justify-center shrink-0 border border-[hsl(var(--av-parchment)/0.15)] shadow-xs transition-transform duration-300 group-hover:scale-105">
+              <Icon className="w-5 h-5 stroke-[1.5]" />
             </div>
             <div>
-              <h3 className="text-2xl font-serif font-bold text-slate-900">{title}</h3>
-              <p className="text-slate-500 font-medium mt-1">{shortDesc}</p>
+              <h3 className="text-xl md:text-2xl font-serif font-normal text-[hsl(var(--av-night))] tracking-tight">{title}</h3>
+              <p className="text-[13px] text-[hsl(var(--av-mute))] font-body mt-0.5 tracking-wide">{shortDesc}</p>
             </div>
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-slate-900 transition-colors"
+            className="w-8 h-8 rounded-full border border-[hsl(var(--av-stone))] flex items-center justify-center text-[hsl(var(--av-mute))] group-hover:text-[hsl(var(--av-night))] group-hover:border-[hsl(var(--av-gold)/0.5)] transition-colors"
           >
-            <ChevronDown className="w-5 h-5" />
+            <ChevronDown className="w-4 h-4 stroke-[1.5]" />
           </motion.div>
         </div>
 
@@ -75,32 +65,32 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.4, ease: "circOut" }}
+              transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
               className="overflow-hidden"
             >
-              <div className="pt-10 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">What it is</h4>
-                    <p className="text-sm text-slate-600 leading-relaxed">{whatItIs}</p>
+              <div className="pt-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-[hsl(var(--av-stone)/0.8)]">
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-body font-medium uppercase tracking-[0.24em] text-[hsl(var(--av-mute))]">What it is</h4>
+                    <p className="text-[13px] text-[hsl(var(--av-ink-text)/0.85)] leading-relaxed font-body">{whatItIs}</p>
                   </div>
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Who it is for</h4>
-                    <p className="text-sm text-slate-600 leading-relaxed">{whoItIsFor}</p>
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-body font-medium uppercase tracking-[0.24em] text-[hsl(var(--av-mute))]">Who it is for</h4>
+                    <p className="text-[13px] text-[hsl(var(--av-ink-text)/0.85)] leading-relaxed font-body">{whoItIsFor}</p>
                   </div>
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">The Outcome</h4>
-                    <p className="text-sm font-bold text-slate-900 leading-relaxed flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-body font-medium uppercase tracking-[0.24em] text-[hsl(var(--av-mute))]">The Outcome</h4>
+                    <p className="text-[13px] text-[hsl(var(--av-night))] font-medium leading-relaxed font-body flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[hsl(var(--av-sage))] shrink-0 mt-0.5" />
                       {outcome}
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 flex justify-end">
-                  <Button asChild className="bg-slate-900 hover:bg-black rounded-xl px-8 h-12 font-bold">
+                <div className="pt-4 border-t border-[hsl(var(--av-stone)/0.6)] flex justify-end">
+                  <Button asChild className="bg-[hsl(var(--av-night))] hover:bg-[hsl(var(--av-ink))] text-[hsl(var(--av-gold-soft))] rounded-full px-6 h-10 font-body text-xs tracking-wider uppercase border border-[hsl(var(--av-gold)/0.3)] shadow-xs transition-transform active:scale-[0.98]">
                     <Link href="/contact" onClick={(e) => e.stopPropagation()}>
-                      Book a Session <ArrowRight className="ml-2 w-4 h-4" />
+                      Consultation Inquiry <ArrowRight className="ml-2 w-3.5 h-3.5" />
                     </Link>
                   </Button>
                 </div>
@@ -114,3 +104,4 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 };
 
 export default ServiceCard;
+
