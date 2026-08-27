@@ -12,12 +12,6 @@ interface VideoPlayerProps {
   userEmail: string;
 }
 
-declare global {
-  interface Window {
-    onYouTubeIframeAPIReady: () => void;
-    YT: any;
-  }
-}
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ courseId, moduleId, userId, userEmail }) => {
   const [loading, setLoading] = useState(true);
@@ -69,7 +63,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ courseId, moduleId, userId, u
       return;
     }
 
-    playerRef.current = new window.YT.Player(`player-${moduleId}`, {
+    playerRef.current = new (window as any).YT.Player(`player-${moduleId}`, {
       height: '100%',
       width: '100%',
       videoId: videoId,
@@ -103,13 +97,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ courseId, moduleId, userId, u
   }, [moduleId, trackProgress, startProgressPolling, stopProgressPolling]);
 
   const initPlayer = useCallback((videoId: string) => {
-    if (!window.YT) {
+    if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
-      window.onYouTubeIframeAPIReady = () => createPlayer(videoId);
+      (window as any).onYouTubeIframeAPIReady = () => createPlayer(videoId);
     } else {
       createPlayer(videoId);
     }

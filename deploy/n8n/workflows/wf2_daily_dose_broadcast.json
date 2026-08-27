@@ -1,0 +1,139 @@
+{
+  "name": "WF-2: Daily Dose WhatsApp Morning Broadcast",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "15 0 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Schedule: 05:45 AM IST (00:15 UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.AUMVEDA_APP_URL || 'https://app.aumveda.com' }}/api/n8n/daily-dose-broadcast",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "node-fetch-broadcast-data",
+      "name": "Fetch Daily Dose & Opted-In Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "recipients",
+        "options": {}
+      },
+      "id": "node-split-recipients",
+      "name": "Split User List",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WHATSAPP_CLOUD_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $json.phone }}\",\n  \"type\": \"template\",\n  \"template\": {\n    \"name\": \"daily_dose_morning_v2\",\n    \"language\": {\n      \"code\": \"en\"\n    },\n    \"components\": [\n      {\n        \"type\": \"header\",\n        \"parameters\": [\n          {\n            \"type\": \"audio\",\n            \"audio\": {\n              \"link\": \"{{ $('Fetch Daily Dose & Opted-In Users').item.json.dose.audioUrl }}\"\n            }\n          }\n        ]\n      },\n      {\n        \"type\": \"body\",\n        \"parameters\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $json.firstName }}\"\n          },\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $('Fetch Daily Dose & Opted-In Users').item.json.dose.chakra }}\"\n          },\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $('Fetch Daily Dose & Opted-In Users').item.json.dose.title }}\"\n          }\n        ]\n      },\n      {\n        \"type\": \"button\",\n        \"sub_type\": \"url\",\n        \"index\": \"0\",\n        \"parameters\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $('Fetch Daily Dose & Opted-In Users').item.json.dose.slug }}\"\n          }\n        ]\n      }\n    ]\n  }\n}"
+      },
+      "id": "node-send-whatsapp",
+      "name": "Send WhatsApp Template + Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUMVEDA_APP_URL || 'https://app.aumveda.com' }}/api/n8n/daily-dose-broadcast",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"log_delivery\",\n  \"userId\": \"{{ $json.userId }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"status\": \"DISPATCHED\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}"
+      },
+      "id": "node-log-delivery",
+      "name": "Log Delivery in DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Schedule: 05:45 AM IST (00:15 UTC)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Daily Dose & Opted-In Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Daily Dose & Opted-In Users": {
+      "main": [
+        [
+          {
+            "node": "Split User List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split User List": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Template + Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Template + Audio": {
+      "main": [
+        [
+          {
+            "node": "Log Delivery in DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": ["aumveda", "whatsapp", "daily-dose", "lifecycle"]
+}

@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Google Cloud Build Configuration for Aumveda Web Service
 # Builds container image and deploys to Google Cloud Run
 # ==============================================================================
@@ -43,11 +43,15 @@ steps:
       - '--max-instances=10'
       - '--concurrency=80'
       - '--cpu-boost'
-      - '--set-env-vars=NODE_ENV=production,HOSTNAME=0.0.0.0'
+      - '--add-cloudsql-instances=${_CLOUD_SQL_INSTANCE}'
+      - '--set-env-vars=NODE_ENV=production,HOSTNAME=0.0.0.0,GTM_SERVER_URL=${_GTM_SERVER_URL}'
+      - '--set-secrets=DATABASE_URL=DATABASE_URL:latest,DIRECT_URL=DIRECT_URL:latest,NEXTAUTH_SECRET=NEXTAUTH_SECRET:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,N8N_WEBHOOK_SECRET=N8N_WEBHOOK_SECRET:latest,META_CAPI_ACCESS_TOKEN=META_CAPI_ACCESS_TOKEN:latest,GA4_API_SECRET=GA4_API_SECRET:latest'
 
 substitutions:
   _SERVICE_NAME: 'aumveda-web'
   _REGION: 'asia-south1'
+  _CLOUD_SQL_INSTANCE: '$PROJECT_ID:asia-south1:aumveda-db'
+  _GTM_SERVER_URL: 'https://gtm.aumveda.com/collect'
 
 images:
   - 'gcr.io/$PROJECT_ID/aumveda-web:$COMMIT_SHA'

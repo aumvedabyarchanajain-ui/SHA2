@@ -1,0 +1,139 @@
+{
+  "name": "WF-5: LMS Course Onboarding & Inactivity Re-engagement",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-daily-reengagement",
+      "name": "Schedule: Daily 10:00 AM Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.AUMVEDA_APP_URL || 'https://app.aumveda.com' }}/api/n8n/course-reengagement?days=4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "node-fetch-inactive-students",
+      "name": "Fetch Stalled Students (>4 Days)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "stalledStudents",
+        "options": {}
+      },
+      "id": "node-split-students",
+      "name": "Split Student Items",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WHATSAPP_CLOUD_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $json.phone }}\",\n  \"type\": \"template\",\n  \"template\": {\n    \"name\": \"course_reengagement_nudge_v1\",\n    \"language\": {\n      \"code\": \"en\"\n    },\n    \"components\": [\n      {\n        \"type\": \"body\",\n        \"parameters\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $json.firstName }}\"\n          },\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $json.courseTitle }}\"\n          },\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $json.lastCompletedLessonTitle }}\"\n          }\n        ]\n      },\n      {\n        \"type\": \"button\",\n        \"sub_type\": \"url\",\n        \"index\": \"0\",\n        \"parameters\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"{{ $json.nextLessonSlug }}\"\n          }\n        ]\n      }\n    ]\n  }\n}"
+      },
+      "id": "node-send-reengagement-nudge",
+      "name": "Dispatch Sejal Nudge WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AUMVEDA_APP_URL || 'https://app.aumveda.com' }}/api/n8n/course-reengagement",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"log_nudge\",\n  \"enrollmentId\": \"{{ $json.enrollmentId }}\",\n  \"userId\": \"{{ $json.userId }}\",\n  \"nudgeType\": \"whatsapp_voice_memo_reengagement\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}"
+      },
+      "id": "node-log-nudge",
+      "name": "Log Nudge in Database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Schedule: Daily 10:00 AM Check": {
+      "main": [
+        [
+          {
+            "node": "Fetch Stalled Students (>4 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Stalled Students (>4 Days)": {
+      "main": [
+        [
+          {
+            "node": "Split Student Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Student Items": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Sejal Nudge WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Sejal Nudge WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Log Nudge in Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": ["aumveda", "lms", "re-engagement", "lifecycle"]
+}

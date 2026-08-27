@@ -22,6 +22,22 @@ export interface ProductView {
   productType: string
   tags: string[]
   chakraAssociation: string | null
+  chakraAffinity?: string | null
+  planetaryRuler?: string | null
+  elementalAssociation?: string | null
+  crystalSystem?: string | null
+  mineralType?: string | null
+  frequencyHz?: number | null
+  model3dType?: string | null
+  energizedBy?: string | null
+  activationRitualText?: string | null
+  activationRitualJson?: {
+    cleansing: string
+    mantra: string
+    somaticImprint: string
+    muhurta: string
+  } | null
+  healingProperties?: any
   metadata: unknown
   createdAt: Date
   updatedAt: Date

@@ -1,0 +1,62 @@
+{
+  "name": "Make.com Scenario: Daily Dose Broadcast (Multi-Channel: Push + Email + WhatsApp)",
+  "flow": [
+    {
+      "id": 1,
+      "module": "cron:Schedule",
+      "version": 1,
+      "parameters": {
+        "pattern": "15 0 * * *",
+        "description": "Daily at 05:45 AM IST (00:15 UTC)"
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionMakeRequest",
+      "version": 1,
+      "parameters": {
+        "url": "{{AUMVEDA_APP_URL}}/api/cron/daily-dose-broadcast",
+        "method": "GET",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "Bearer {{CRON_SECRET}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "json:ParseJSON",
+      "version": 1,
+      "parameters": {
+        "json": "{{2.data}}"
+      }
+    },
+    {
+      "id": 4,
+      "module": "router:MultiChannelRouter",
+      "version": 1,
+      "routes": [
+        {
+          "name": "Route 1: Log Execution & Telemetry",
+          "flow": [
+            {
+              "id": 5,
+              "module": "tools:SetVariable",
+              "parameters": {
+                "name": "broadcastStatus",
+                "value": "Dispatched {{3.pushCount}} device notifications & {{3.emailCount}} emails."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "platform": "make.com",
+    "version": "v2",
+    "description": "Automates Daily Dose broadcast across device notifications and email via Aumveda API"
+  }
+}

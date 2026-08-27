@@ -14,19 +14,18 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const courseId = parseInt(params.courseId, 10)
-  const moduleId = parseInt(params.moduleId, 10)
-  if (isNaN(courseId) || isNaN(moduleId)) {
+  const { courseId, moduleId } = params
+  if (!courseId || !moduleId) {
     return NextResponse.json({ success: false, error: 'Invalid ids' }, { status: 400 })
   }
 
-  const courseModule = await prisma.module.findFirst({
+  const courseModule = await prisma.courseModule.findFirst({
     where: {
       id: moduleId,
       courseId,
       course: { isPublished: true },
     },
-    select: { id: true, isPreview: true, course: { select: { isPaid: true } } },
+    select: { id: true, isPreview: true, course: { select: { id: true, isPaid: true } } },
   })
 
   if (!courseModule) {
@@ -37,12 +36,12 @@ export async function GET(
   const isPreview = courseModule.isPreview
 
   if (!isFree && !isPreview) {
-    const enrolment = await prisma.enrolment.findUnique({
-      where: { userId_courseId: { userId: session.user.id, courseId } },
+    const enrollment = await prisma.courseEnrollment.findUnique({
+      where: { userId_courseId: { userId: session.user.id, courseId: courseModule.course.id } },
     })
-    if (!enrolment) {
+    if (!enrollment) {
       return NextResponse.json(
-        { success: false, error: 'Enrolment required for this content' },
+        { success: false, error: 'Enrollment required for this content' },
         { status: 403 },
       )
     }

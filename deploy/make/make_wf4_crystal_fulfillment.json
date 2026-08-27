@@ -1,0 +1,38 @@
+{
+  "name": "Make.com Scenario: Crystal Order Fulfillment (Shiprocket + Push + Activation Email)",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebhook",
+      "version": 1,
+      "parameters": {
+        "webhookName": "Aumveda Order Paid (Crystal Fulfillment)"
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionMakeRequest",
+      "version": 1,
+      "parameters": {
+        "url": "{{AUMVEDA_APP_URL}}/api/cron/crystal-fulfillment",
+        "method": "POST",
+        "headers": [
+          {
+            "name": "Authorization",
+            "value": "Bearer {{CRON_SECRET}}"
+          },
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": "{\"orderId\": \"{{1.orderId}}\"}"
+      }
+    }
+  ],
+  "metadata": {
+    "platform": "make.com",
+    "version": "v2",
+    "description": "Triggered on Order Paid to dispatch Shiprocket courier and send Device Push + Consecrated Ritual Email"
+  }
+}

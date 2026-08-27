@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Aumveda Next.js Production Dockerfile for Google Cloud Run
 # Multi-stage build with pnpm, Prisma, and Next.js standalone output
 # ==============================================================================
@@ -68,6 +68,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Create non-root system user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+# Create Cloud SQL socket directory with proper permissions
+RUN mkdir -p /cloudsql && chown -R nextjs:nodejs /cloudsql && chmod 777 /cloudsql
 
 # Copy standalone build output and static/public assets
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./

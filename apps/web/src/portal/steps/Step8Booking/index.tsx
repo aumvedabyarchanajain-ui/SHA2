@@ -13,7 +13,7 @@ import { fadeUpVariants } from '../../animation/variants'
 import { usePortal } from '../../engine/PortalContext'
 import type { StepProps, PortalData } from '../../engine/types'
 import { CalendarSelector } from './CalendarSelector'
-import { TrustInvite } from './TrustInvite'
+import { TrustInvite, PRACTITIONERS, type PractitionerId } from './TrustInvite'
 
 export function registerStep8() {
   StepRegistry.register({
@@ -50,12 +50,22 @@ function Step8Booking({ data }: StepProps<PortalData>) {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [bookingTime, setBookingTime] = useState<string | null>(null)
 
+  const isSomatic =
+    data.profileResult === 'wounded_warrior' ||
+    data.profileResult === 'anxious_achiever' ||
+    data.profileResult === 'frozen_heart'
+
+  const recommendedPractitionerId: PractitionerId = isSomatic ? 'sejal' : 'archana'
+  const [selectedPractitionerId, setSelectedPractitionerId] = useState<PractitionerId>(recommendedPractitionerId)
+
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [regError, setRegError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const submitLock = useRef(false)
+
+  const therapist = PRACTITIONERS[selectedPractitionerId]
 
   useEffect(() => {
     if (subState !== 'decoding') return
@@ -112,30 +122,6 @@ function Step8Booking({ data }: StepProps<PortalData>) {
     }
   }
 
-  const getRecommendedTherapist = () => {
-    const isSomatic =
-      data.profileResult === 'wounded_warrior' ||
-      data.profileResult === 'anxious_achiever' ||
-      data.profileResult === 'frozen_heart'
-
-    if (isSomatic) {
-      return {
-        id: 'sejal' as const,
-        name: 'Sejal Jain',
-        role: 'Healing Facilitator · Somatic & nervous-system work · Mumbai',
-        bio: 'Sejal holds CBT-informed coaching, breathwork, and somatic practices — evidence meeting presence, never clinical coldness.',
-      }
-    }
-    return {
-      id: 'archana' as const,
-      name: 'Archana Jain',
-      role: 'Vedic Practitioner · Astrology, Vastu, ritual · Jaipur',
-      bio: 'Archana brings 25+ years of Vedic lineage — chart, space, and ritual as a map for how you heal in daily life.',
-    }
-  }
-
-  const therapist = getRecommendedTherapist()
-
   const handleRegisterClient = async (e: React.FormEvent) => {
     e.preventDefault()
     if (submitLock.current || submitting) return
@@ -171,7 +157,7 @@ function Step8Booking({ data }: StepProps<PortalData>) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: data.email,
-          practitioner: therapist.id,
+          practitioner: selectedPractitionerId,
           serviceType: 'discovery_call',
           bookingDatetime: bookingTime,
           durationMinutes: DISCOVERY.duration,
@@ -315,9 +301,9 @@ function Step8Booking({ data }: StepProps<PortalData>) {
                 <button
                   type="button"
                   onClick={() => setSubState('invite')}
-                  className="min-h-[52px] px-10 rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-body font-medium transition-opacity hover:opacity-90"
+                  className="min-h-[52px] px-10 rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-body font-medium transition-opacity hover:opacity-90 shadow-lg shadow-[rgba(201,168,76,0.2)]"
                 >
-                  Meet your practitioner
+                  Choose your practitioner
                 </button>
               </div>
             </PortalContent>
@@ -333,11 +319,14 @@ function Step8Booking({ data }: StepProps<PortalData>) {
             exit="exit"
             className="px-4 py-12"
           >
-            <PortalContent maxWidth="max-w-xl">
+            <PortalContent maxWidth="max-w-2xl">
               <TrustInvite
-                therapistName={therapist.name}
-                therapistRole={therapist.role}
-                therapistBio={therapist.bio}
+                selectedPractitionerId={selectedPractitionerId}
+                recommendedPractitionerId={recommendedPractitionerId}
+                onSelectPractitioner={(id) => {
+                  setSelectedPractitionerId(id)
+                  setBookingTime(null)
+                }}
                 onContinue={() => setSubState('booking')}
                 onBack={() => setSubState('report')}
               />
@@ -356,7 +345,7 @@ function Step8Booking({ data }: StepProps<PortalData>) {
           >
             <PortalContent maxWidth="max-w-xl">
               <div className="space-y-10">
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-3">
                   <p className="font-body text-[11px] uppercase tracking-[0.22em] text-[hsl(var(--av-gold))]">
                     Free Discovery Call
                   </p>
@@ -366,6 +355,30 @@ function Step8Booking({ data }: StepProps<PortalData>) {
                   <p className="font-body text-sm text-[hsl(var(--av-parchment)/0.55)]">
                     15 minutes · with {therapist.name} · no payment
                   </p>
+
+                  {/* Quick Practitioner Switcher */}
+                  <div className="inline-flex p-1 rounded-full bg-[hsl(var(--av-parchment)/0.06)] border border-[hsl(var(--av-parchment)/0.12)] mt-2">
+                    {(['archana', 'sejal'] as const).map((id) => {
+                      const isSelected = selectedPractitionerId === id
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPractitionerId(id)
+                            setBookingTime(null)
+                          }}
+                          className={`px-4 py-1.5 rounded-full font-body text-xs transition-all ${
+                            isSelected
+                              ? 'bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-medium shadow-sm'
+                              : 'text-[hsl(var(--av-parchment)/0.6)] hover:text-[hsl(var(--av-parchment))]'
+                          }`}
+                        >
+                          {PRACTITIONERS[id].name} {id === 'archana' ? '(Vedic)' : '(Somatic)'}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-[hsl(var(--av-parchment)/0.12)] p-6">
@@ -393,14 +406,14 @@ function Step8Booking({ data }: StepProps<PortalData>) {
                     type="button"
                     disabled={!bookingTime}
                     onClick={() => setSubState('register')}
-                    className="w-full max-w-sm min-h-[52px] rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-body font-medium disabled:opacity-40 transition-opacity hover:opacity-90"
+                    className="w-full max-w-sm min-h-[52px] rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-body font-medium disabled:opacity-40 transition-opacity hover:opacity-90 shadow-lg shadow-[rgba(201,168,76,0.2)]"
                   >
                     Continue
                   </button>
                   <button
                     type="button"
                     onClick={() => setSubState('invite')}
-                    className="font-body text-sm text-[hsl(var(--av-parchment)/0.4)]"
+                    className="font-body text-sm text-[hsl(var(--av-parchment)/0.4)] hover:text-[hsl(var(--av-parchment)/0.7)] transition-colors"
                   >
                     Back
                   </button>
@@ -508,9 +521,9 @@ function Step8Booking({ data }: StepProps<PortalData>) {
                   <button
                     type="submit"
                     disabled={submitting || !bookingTime}
-                    className="w-full min-h-[52px] rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-body font-medium disabled:opacity-50 transition-opacity"
+                    className="w-full min-h-[52px] rounded-full bg-[hsl(var(--av-gold))] text-[hsl(var(--av-ink))] font-body font-medium disabled:opacity-50 transition-opacity hover:opacity-90 shadow-lg shadow-[rgba(201,168,76,0.2)]"
                   >
-                    {submitting ? 'Confirming…' : 'Confirm Discovery Call'}
+                    {submitting ? 'Confirming…' : `Confirm Discovery Call with ${therapist.name}`}
                   </button>
                 </form>
               </div>
@@ -535,7 +548,7 @@ function Step8Booking({ data }: StepProps<PortalData>) {
                 Your Discovery Call is reserved
               </h2>
               <p className="font-body text-base text-[hsl(var(--av-parchment)/0.6)] leading-relaxed mt-4">
-                Confirmation email and calendar invite are on their way
+                Confirmation email and calendar invite for your session with {therapist.name} are on their way
                 {bookingTime ? ` for ${formatBooking()}` : ''}.
               </p>
               <p className="font-body text-sm text-[hsl(var(--av-parchment)/0.4)] mt-6">

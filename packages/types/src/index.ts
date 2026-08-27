@@ -153,5 +153,93 @@ export type SubscriptionStatus = 'active' | 'paused' | 'cancelled' | 'past_due'
 
 export type CommunityTier = 'free' | 'paid'
 
-export type UserRole = 'client' | 'practitioner' | 'admin' | 'super_admin'
+export type UserRole = 'user' | 'client' | 'practitioner' | 'admin' | 'super_admin'
+
+// ─── LMS Academy Types ───────────────────────────────────────
+
+export type CourseLevel = 'ALL_LEVELS' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+
+export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED'
+
+export interface CourseLessonView {
+  id: string
+  moduleId: string
+  title: string
+  description?: string | null
+  youtubeVideoId: string
+  durationSeconds: number
+  sortOrder: number
+  isFreePreview: boolean
+  workbookPdfUrl?: string | null
+  audioDownloadUrl?: string | null
+  reflectionPrompt?: string | null
+  isCompleted?: boolean
+  watchTimeSeconds?: number
+  lastPlayedPositionSec?: number
+}
+
+export interface CourseQuizView {
+  id: string
+  moduleId: string
+  title: string
+  passingScorePct: number
+  questionsJson: any
+}
+
+export interface CourseModuleView {
+  id: string | number
+  courseId?: string | number
+  title: string
+  description?: string | null
+  sortOrder?: number
+  orderIndex?: number
+  durationSec?: number | null
+  isPreview?: boolean
+  completed?: boolean
+  watchedSec?: number
+  lessons?: CourseLessonView[]
+  quizzes?: CourseQuizView[]
+}
+
+export interface CourseView {
+  id: string | number
+  slug: string
+  title: string
+  subtitle?: string | null
+  description: string
+  thumbnailUrl?: string | null
+  thumbnailKey?: string | null
+  trailerYoutubeId?: string | null
+  instructorName?: string | null
+  level?: CourseLevel | string
+  priceINR?: number | string | null
+  salePriceINR?: number | string | null
+  isPaid: boolean
+  priceCents?: number | null
+  isPublished: boolean
+  totalDurationMinutes?: number
+  certificateEnabled?: boolean
+  enrolled?: boolean
+  progress?: number
+  completedModules?: number
+  totalModules?: number
+  continueModuleId?: string | number | null
+  continueModuleTitle?: string | null
+  modules?: CourseModuleView[]
+}
+
+export interface QuizSubmissionResult {
+  scorePct: number
+  isPassed: boolean
+  submittedAt: string
+}
+
+export interface CertificateView {
+  certificateNumber: string
+  courseTitle: string
+  studentName: string
+  issuedAt: string
+  pdfUrl: string
+  verificationHash: string
+}
 
