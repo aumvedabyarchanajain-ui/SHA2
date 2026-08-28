@@ -30,18 +30,15 @@ const nextConfig = {
     workerThreads: false,
     cpus: 1,
     outputFileTracingRoot: path.join(__dirname, '../../'),
-    // Standalone-only: pnpm's symlinked layout hides Prisma query engines from
-    // Next.js file tracing. Not needed on Vercel (native serverless build handles
-    // Prisma engines itself), only for the self-hosted standalone build.
-    ...(isVercel
-      ? {}
-      : {
-          outputFileTracingIncludes: {
-            '/api/**': [
-              '../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/**',
-            ],
-          },
-        }),
+    // pnpm's symlinked layout hides Prisma query engines from Next.js file tracing.
+    // Copy the generated `.prisma/client` (incl. the query-engine binaries) into the
+    // traced server bundles for BOTH the self-hosted standalone output and the Vercel
+    // serverless runtime, which otherwise fail with "could not locate the Query Engine".
+    outputFileTracingIncludes: {
+      '/**': [
+        '../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/**',
+      ],
+    },
   },
 
   images: {
