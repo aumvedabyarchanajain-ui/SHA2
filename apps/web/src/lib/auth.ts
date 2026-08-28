@@ -207,8 +207,28 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       // Runs on initial sign-in only
       if (user) {
-        token.id = user.id
-        const rawRole = (user as any).role || 'client'
+        // Under JWT strategy the OAuth `user.id` is the provider `sub`, not the real
+        // DB id persisted by the signIn callback. Resolve the real id/role (by email)
+        // so the session/downstream code keys off the actual users row.
+        let resolvedId = user.id
+        let resolvedRole = (user as any).role || 'client'
+        if (user.email) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              select: { id: true, role: true },
+            })
+            if (dbUser) {
+              resolvedId = dbUser.id
+              resolvedRole = dbUser.role
+            }
+          } catch (e) {
+            // Non-blocking: fall back to the provided id/role.
+          }
+        }
+
+        token.id = resolvedId
+        const rawRole = resolvedRole
         token.role = (rawRole === 'user' ? 'client' : rawRole) as UserRole
 
         // Capture request metadata
@@ -231,7 +251,7 @@ export const authOptions: NextAuthOptions = {
           await prisma.session.create({
             data: {
               sessionToken,
-              userId: user.id,
+              userId: resolvedId,
               expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
               userAgent,
               ipAddress,
@@ -273,13 +293,76 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       try {
         if (account?.type === 'oauth' || account?.type === 'email') {
-          const existingProfile = await prisma.profile.findUnique({
-            where: { userId: user.id },
+          if (!user.email) {
+            // Cannot persist an OAuth identity without an email address.
+            return false
+          }
+          // JWT session strategy does NOT persist OAuth users/accounts automatically,
+          // so the Profile created below would have seen a non-existent userId (P2003 ->
+          // AccessDenied). Persist the identity first, then create the Profile against the
+          // real DB user id. Idempotent across repeat logins (no duplicate users/accounts).
+          let dbUser = await prisma.user.findUnique({
+            where: { email: user.email },
           })
 
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                emailVerified: new Date(),
+                googleId:
+                  account?.provider === 'google'
+                    ? account.providerAccountId
+                    : null,
+              },
+            })
+          } else if (
+            account?.provider === 'google' &&
+            !dbUser.googleId
+          ) {
+            // Link an existing (e.g. password-created) user to Google without duplicating.
+            dbUser = await prisma.user.update({
+              where: { id: dbUser.id },
+              data: {
+                googleId: account.providerAccountId,
+                emailVerified: dbUser.emailVerified ?? new Date(),
+              },
+            })
+          }
+
+          if (account?.type === 'oauth') {
+            await prisma.account.upsert({
+              where: {
+                provider_providerAccountId: {
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                },
+              },
+              create: {
+                userId: dbUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                refresh_token: account.refresh_token,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state,
+              },
+              update: {},
+            })
+          }
+
+          const existingProfile = await prisma.profile.findUnique({
+            where: { userId: dbUser.id },
+          })
           if (!existingProfile) {
             await prisma.profile.create({
-              data: { userId: user.id },
+              data: { userId: dbUser.id },
             })
           }
         }
